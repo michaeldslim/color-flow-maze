@@ -36,11 +36,11 @@ type TScreen = 'intro' | 'game';
 
 const MAX_LEVEL = 50;
 
-const UNDO_LIMIT = 3;
+const UNDO_LIMIT = 5;
 
 const LEVEL_TIME_SECONDS = 60;
 
-const TIMER_ENABLED = false;
+const TIMER_ENABLED = true;
 
 export default function App() {
   const topInset = Platform.OS === 'android' ? RNStatusBar.currentHeight ?? 0 : 0;
@@ -53,9 +53,11 @@ export default function App() {
   const [gameCompleted, setGameCompleted] = useState<boolean>(false);
 
   const lastStatusRef = useRef<TGameStatus>('playing');
+  const lastSecondsRef = useRef<number>(LEVEL_TIME_SECONDS);
 
   const winPlayer = useAudioPlayer(require('./assets/sounds/win.mp3'));
   const congratsPlayer = useAudioPlayer(require('./assets/sounds/congrats.mp3'));
+  const timerPlayer = useAudioPlayer(require('./assets/sounds/timer.mp3'));
 
   const boardShakeX = useRef(new Animated.Value(0)).current;
   const playerScale = useRef(new Animated.Value(1)).current;
@@ -249,6 +251,25 @@ export default function App() {
     lastStatusRef.current = status;
   }, [status, levelNumber]);
 
+  React.useEffect(() => {
+    if (!TIMER_ENABLED) return;
+
+    if (screen !== 'game' || status !== 'playing' || secondsLeft <= 0) {
+      timerPlayer.pause();
+      timerPlayer.seekTo(0);
+      lastSecondsRef.current = secondsLeft;
+      return;
+    }
+
+    const prev = lastSecondsRef.current;
+    lastSecondsRef.current = secondsLeft;
+
+    if (secondsLeft <= 10 && secondsLeft !== prev) {
+      timerPlayer.seekTo(0);
+      timerPlayer.play();
+    }
+  }, [secondsLeft, status, screen, timerPlayer]);
+
   const undo = () => {
     if (undosUsed >= UNDO_LIMIT) return;
     setHistory((prev) => {
@@ -371,7 +392,8 @@ export default function App() {
         <View style={styles.hudContainer}>
           <View style={styles.hudRow}>
             <Text style={styles.hudText}>Level: {levelNumber}/{MAX_LEVEL}</Text>
-            <Text style={styles.hudText}>Moves: {movesUsed}/{moveLimit}</Text>
+            <Text style={styles.hudText}>Moves: {movesUsed}</Text>
+            <Text style={styles.hudText}>Time: {secondsLeft}s</Text>
           </View>
         </View>
 
