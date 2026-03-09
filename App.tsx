@@ -1,4 +1,6 @@
 import { StatusBar } from 'expo-status-bar';
+import { setAudioModeAsync, useAudioPlayer } from 'expo-audio';
+import * as Haptics from 'expo-haptics';
 import React, { useMemo, useRef, useState } from 'react';
 import {
   Animated,
@@ -308,6 +310,9 @@ export default function App() {
 
   const lastStatusRef = useRef<TGameStatus>('playing');
 
+  const winPlayer = useAudioPlayer(require('./assets/sounds/win.mp3'));
+  const congratsPlayer = useAudioPlayer(require('./assets/sounds/congrats.mp3'));
+
   const boardShakeX = useRef(new Animated.Value(0)).current;
   const playerScale = useRef(new Animated.Value(1)).current;
 
@@ -370,19 +375,16 @@ export default function App() {
 
   const triggerWinFeedback = async () => {
     try {
-      const importer = Function('return import("expo-haptics")') as () => Promise<any>;
-      const Haptics = await importer();
-      if (typeof Haptics.isAvailableAsync === 'function') {
-        const available = await Haptics.isAvailableAsync();
-        if (!available) return;
-      }
-
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     } catch {
       // ignore
     }
   };
+
+  React.useEffect(() => {
+    void setAudioModeAsync({ playsInSilentMode: true });
+  }, []);
 
   const currentSeed = levelSeeds[levelNumber - 1] ?? (Date.now() >>> 0);
   const level = useMemo(() => generateLevel(levelNumber, currentSeed), [levelNumber, currentSeed]);
@@ -486,9 +488,18 @@ export default function App() {
     const last = lastStatusRef.current;
     if (last !== 'won' && status === 'won') {
       void triggerWinFeedback();
+      winPlayer.seekTo(0);
+      winPlayer.play();
+
+      if (levelNumber >= MAX_LEVEL) {
+        setTimeout(() => {
+          congratsPlayer.seekTo(0);
+          congratsPlayer.play();
+        }, 350);
+      }
     }
     lastStatusRef.current = status;
-  }, [status]);
+  }, [status, levelNumber]);
 
   const undo = () => {
     if (undosUsed >= UNDO_LIMIT) return;
