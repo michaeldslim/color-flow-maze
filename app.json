@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "color-flow-maze",
-    "slug": "color-flow-maze",
+    "name": "Color Flow Maze",
+    "slug": "Color Flow Maze",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -12,7 +12,8 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.mike008.colorflowmaze"
     },
     "android": {
       "adaptiveIcon": {
@@ -21,7 +22,8 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.mike008.colorflowmaze"
     },
     "web": {
       "favicon": "./assets/favicon.png"
