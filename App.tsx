@@ -361,8 +361,12 @@ export default function App() {
 
   const triggerWinFeedback = async () => {
     try {
-      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+      if (Platform.OS === 'ios') {
+        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+      } else {
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+      }
     } catch {
       // ignore
     }
