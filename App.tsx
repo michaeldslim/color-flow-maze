@@ -5,7 +5,6 @@ import React, { useMemo, useRef, useState } from 'react';
 import {
   Animated,
   Easing,
-  PanResponder,
   Platform,
   Pressable,
   ScrollView,
@@ -51,8 +50,6 @@ const UNDO_LIMIT = 3;
 const LEVEL_TIME_SECONDS = 60;
 
 const TIMER_ENABLED = false;
-
-const SWIPE_THRESHOLD_PX = 20;
 
 function parseLevel(raw: string[]): {
   grid: TCell[][];
@@ -285,17 +282,6 @@ function isBlocked(grid: TCell[][], pos: TPosition): boolean {
 
 function cloneTrail(trail: boolean[][]): boolean[][] {
   return trail.map((row) => row.slice());
-}
-
-function swipeToDirection(dx: number, dy: number): TDirection | null {
-  const absX = Math.abs(dx);
-  const absY = Math.abs(dy);
-  if (absX < SWIPE_THRESHOLD_PX && absY < SWIPE_THRESHOLD_PX) return null;
-
-  if (absX > absY) {
-    return dx > 0 ? 'right' : 'left';
-  }
-  return dy > 0 ? 'down' : 'up';
 }
 
 export default function App() {
@@ -559,22 +545,6 @@ export default function App() {
     setStatus(didLose ? 'lost' : 'playing');
   };
 
-  const panResponder = useRef(
-    PanResponder.create({
-      onMoveShouldSetPanResponder: (_evt, gestureState) => {
-        return (
-          Math.abs(gestureState.dx) > SWIPE_THRESHOLD_PX ||
-          Math.abs(gestureState.dy) > SWIPE_THRESHOLD_PX
-        );
-      },
-      onPanResponderRelease: (_evt, gestureState) => {
-        const dir = swipeToDirection(gestureState.dx, gestureState.dy);
-        if (!dir) return;
-        attemptMove(dir);
-      },
-    }),
-  ).current;
-
   const headerText =
     gameCompleted
       ? 'You beat the game!'
@@ -582,7 +552,7 @@ export default function App() {
         ? 'You won!'
       : status === 'lost'
         ? 'Out of moves'
-        : 'Swipe to slide';
+        : 'Use the D-pad';
 
   if (screen === 'intro') {
     return (
@@ -599,7 +569,7 @@ export default function App() {
 
           <View style={styles.introCard}>
             <Text style={styles.introSectionTitle}>플레이 방법</Text>
-            <Text style={styles.introText}>- 스와이프하거나 방향 버튼을 누르세요.</Text>
+            <Text style={styles.introText}>- 방향 버튼을 누르세요.</Text>
             <Text style={styles.introText}>- 벽에 부딪힐 때까지 미끄러집니다.</Text>
             <Text style={styles.introText}>- 금색 칸에 “멈춰야” 승리합니다.</Text>
             <Text style={styles.introText}>- 50레벨을 클리어하면 게임을 완료합니다.</Text>
@@ -609,7 +579,7 @@ export default function App() {
             <View style={styles.introDivider} />
 
             <Text style={styles.introSectionTitle}>How to play</Text>
-            <Text style={styles.introText}>- Swipe or press the arrow buttons.</Text>
+            <Text style={styles.introText}>- Press the arrow buttons.</Text>
             <Text style={styles.introText}>- You slide until you hit a wall.</Text>
             <Text style={styles.introText}>- You win only if you STOP on the gold tile.</Text>
             <Text style={styles.introText}>- Beat Level 50 to finish the game.</Text>
@@ -643,7 +613,7 @@ export default function App() {
           </View>
         </View>
 
-        <View style={styles.boardWrapper} {...panResponder.panHandlers}>
+        <View style={styles.boardWrapper}>
           <Animated.View style={[styles.board, { transform: [{ translateX: boardShakeX }] }]}>
             {grid.map((row, r) => (
               <View key={`r-${r}`} style={styles.boardRow}>
