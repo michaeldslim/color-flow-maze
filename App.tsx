@@ -16,12 +16,10 @@ import {
 import {
   cloneTrail,
   createTrail,
-  DEFAULT_MOVE_LIMIT,
   directionVector,
   generateLevel,
   inBounds,
   isBlocked,
-  minMovesToGoal,
   positionsEqual,
   slide,
   type TCell,
@@ -138,7 +136,7 @@ export default function App() {
 
   const currentSeed = levelSeeds[levelNumber - 1] ?? (Date.now() >>> 0);
   const level = useMemo(() => generateLevel(levelNumber, currentSeed), [levelNumber, currentSeed]);
-  const { grid, start, goal, moveLimit } = level;
+  const { grid, start, goal } = level;
 
   const rows = grid.length;
   const cols = grid[0]?.length ?? 0;
@@ -154,8 +152,6 @@ export default function App() {
     return t;
   });
   const [history, setHistory] = useState<TGameSnapshot[]>([]);
-
-  const movesLeft = Math.max(0, moveLimit - movesUsed);
 
   const pushHistory = (snapshot: TGameSnapshot) => {
     setHistory((prev) => [snapshot, ...prev].slice(0, 200));
@@ -286,7 +282,6 @@ export default function App() {
 
   const attemptMove = (direction: TDirection) => {
     if (status !== 'playing') return;
-    if (movesLeft <= 0) return;
     if (TIMER_ENABLED && secondsLeft <= 0) return;
 
     const { dr, dc } = directionVector(direction);
@@ -310,11 +305,11 @@ export default function App() {
 
     const newMovesUsed = movesUsed + 1;
     const didWin = positionsEqual(cur, goal);
-    const didLose = !didWin && newMovesUsed >= moveLimit;
 
     setPosition(cur);
     setTrail(nextTrail);
     setMovesUsed(newMovesUsed);
+
     if (didWin) {
       pulsePlayer('win');
       setStatus('won');
@@ -325,7 +320,6 @@ export default function App() {
     }
 
     pulsePlayer('move');
-    setStatus(didLose ? 'lost' : 'playing');
   };
 
   const headerText =
@@ -334,7 +328,7 @@ export default function App() {
       : status === 'won'
         ? 'You won!'
       : status === 'lost'
-        ? 'Out of moves'
+        ? 'Time up'
         : 'Use the D-pad';
 
   if (screen === 'intro') {
@@ -356,7 +350,7 @@ export default function App() {
             <Text style={styles.introText}>- 벽에 부딪힐 때까지 미끄러집니다.</Text>
             <Text style={styles.introText}>- 금색 칸에 “멈춰야” 승리합니다.</Text>
             <Text style={styles.introText}>- 50레벨을 클리어하면 게임을 완료합니다.</Text>
-            <Text style={styles.introText}>- 레벨마다 이동/되돌리기 횟수가 제한됩니다.</Text>
+            <Text style={styles.introText}>- 레벨마다 시간/되돌리기 횟수가 제한됩니다.</Text>
             <Text style={styles.introText}>- Reset 버튼을 길게 누르면 게임이 처음부터 다시 시작됩니다.</Text>
 
             <View style={styles.introDivider} />
@@ -366,7 +360,7 @@ export default function App() {
             <Text style={styles.introText}>- You slide until you hit a wall.</Text>
             <Text style={styles.introText}>- You win only if you STOP on the gold tile.</Text>
             <Text style={styles.introText}>- Beat Level 50 to finish the game.</Text>
-            <Text style={styles.introText}>- Limited moves and undos each level.</Text>
+            <Text style={styles.introText}>- Limited time and undos each level.</Text>
             <Text style={styles.introText}>- Long-press Reset to restart the whole game.</Text>
           </View>
 
@@ -392,7 +386,6 @@ export default function App() {
         <View style={styles.hudContainer}>
           <View style={styles.hudRow}>
             <Text style={styles.hudText}>Level: {levelNumber}/{MAX_LEVEL}</Text>
-            <Text style={styles.hudText}>Moves: {movesUsed}</Text>
             <Text style={styles.hudText}>Time: {secondsLeft}s</Text>
           </View>
         </View>
