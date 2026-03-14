@@ -350,7 +350,6 @@ export default function App() {
             <Text style={styles.introText}>- 벽에 부딪힐 때까지 미끄러집니다.</Text>
             <Text style={styles.introText}>- 금색 칸에 “멈춰야” 승리합니다.</Text>
             <Text style={styles.introText}>- 50레벨을 클리어하면 게임을 완료합니다.</Text>
-            <Text style={styles.introText}>- 레벨마다 시간/되돌리기 횟수가 제한됩니다.</Text>
             <Text style={styles.introText}>- Reset 버튼을 길게 누르면 게임이 처음부터 다시 시작됩니다.</Text>
 
             <View style={styles.introDivider} />
@@ -360,7 +359,6 @@ export default function App() {
             <Text style={styles.introText}>- You slide until you hit a wall.</Text>
             <Text style={styles.introText}>- You win only if you STOP on the gold tile.</Text>
             <Text style={styles.introText}>- Beat Level 50 to finish the game.</Text>
-            <Text style={styles.introText}>- Limited time and undos each level.</Text>
             <Text style={styles.introText}>- Long-press Reset to restart the whole game.</Text>
           </View>
 
