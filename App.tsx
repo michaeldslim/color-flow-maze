@@ -1,5 +1,6 @@
 import { StatusBar } from 'expo-status-bar';
 import { setAudioModeAsync, useAudioPlayer } from 'expo-audio';
+import Fireworks from './Fireworks';
 import * as Haptics from 'expo-haptics';
 import React, { useMemo, useRef, useState } from 'react';
 import {
@@ -49,6 +50,8 @@ export default function App() {
   const [levelNumber, setLevelNumber] = useState<number>(1);
   const [levelSeeds, setLevelSeeds] = useState<number[]>(() => [Date.now() >>> 0]);
   const [gameCompleted, setGameCompleted] = useState<boolean>(false);
+  const [showFireworks, setShowFireworks] = useState<boolean>(false);
+  const prevGameCompletedRef = useRef<boolean>(false);
 
   const lastStatusRef = useRef<TGameStatus>('playing');
   const lastSecondsRef = useRef<number>(LEVEL_TIME_SECONDS);
@@ -185,6 +188,7 @@ export default function App() {
   const restartGame = () => {
     const seed = Date.now() >>> 0;
     setGameCompleted(false);
+    setShowFireworks(false);
     setLevelSeeds([seed]);
     setLevelNumber(1);
   };
@@ -229,6 +233,14 @@ export default function App() {
       clearInterval(id);
     };
   }, [status, secondsLeft, gameCompleted]);
+
+  React.useEffect(() => {
+    if (gameCompleted && !prevGameCompletedRef.current) {
+      setShowFireworks(true);
+      setTimeout(() => setShowFireworks(false), 4500);
+    }
+    prevGameCompletedRef.current = gameCompleted;
+  }, [gameCompleted]);
 
   React.useEffect(() => {
     const last = lastStatusRef.current;
@@ -524,6 +536,7 @@ export default function App() {
         </View>
 
         <StatusBar style="auto" />
+        <Fireworks visible={showFireworks} />
       </View>
     </View>
   );
