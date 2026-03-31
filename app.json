@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Color Flow Maze",
-    "slug": "Color Flow Maze",
+    "slug": "colorflowmaze",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -29,7 +29,18 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-audio"
-    ]
+      "expo-audio",
+      "expo-updates"
+    ],
+    "updates": {
+      "url": "https://u.expo.dev/a7a0095e-ef0a-4f2c-8027-e9780e5c9f8a"
+    },
+    "runtimeVersion": "1.0.0",
+    "extra": {
+      "eas": {
+        "projectId": "a7a0095e-ef0a-4f2c-8027-e9780e5c9f8a"
+      }
+    },
+    "owner": "mike008"
   }
 }

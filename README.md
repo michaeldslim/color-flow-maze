@@ -123,3 +123,61 @@ Key constants in `App.tsx`:
 | `UNDO_LIMIT` | `3` | Undos allowed per level |
 | `LEVEL_TIME_SECONDS` | `60` | Per-level timer (currently disabled) |
 | `TIMER_ENABLED` | `false` | Toggle countdown timer |
+
+---
+
+## EAS (Expo Application Services)
+
+This project uses **EAS Build** for cloud builds and **EAS Update** for over-the-air (OTA) JS updates.
+
+### Setup
+
+```bash
+# Install EAS CLI globally
+npm install -g eas-cli
+
+# Log in to your Expo account
+eas login
+
+# Link this project to EAS (first time only)
+eas init --id a7a0095e-ef0a-4f2c-8027-e9780e5c9f8a
+```
+
+### Build
+
+```bash
+# Build for production (Android AAB + iOS IPA)
+eas build --platform android --profile production
+eas build --platform ios --profile production
+
+# Build both platforms at once
+eas build --platform all --profile production
+
+# Build for internal testing
+eas build --platform android --profile preview
+eas build --platform ios --profile preview
+```
+
+> Builds run on Expo's cloud servers. When complete, a download link for the `.aab` / `.ipa` is provided.
+
+### OTA Update (JS-only changes)
+
+Use this instead of a full store release when only JavaScript/assets changed.
+
+```bash
+# Push an OTA update to production
+eas update --channel production --message "Fix bug / update description"
+
+# Push to preview channel for testing
+eas update --channel preview --message "Test update"
+```
+
+> OTA updates are only delivered to devices whose `runtimeVersion` matches. A new binary build is required when native code changes.
+
+### Channels
+
+| Profile | Channel | Purpose |
+|---|---|---|
+| `development` | `development` | Dev client builds |
+| `preview` | `preview` | Internal QA / testers |
+| `production` | `production` | App Store / Play Store |
