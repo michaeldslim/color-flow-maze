@@ -54,11 +54,9 @@ export default function App() {
   const prevGameCompletedRef = useRef<boolean>(false);
 
   const lastStatusRef = useRef<TGameStatus>('playing');
-  const lastSecondsRef = useRef<number>(LEVEL_TIME_SECONDS);
 
   const winPlayer = useAudioPlayer(require('./assets/sounds/win.mp3'));
   const congratsPlayer = useAudioPlayer(require('./assets/sounds/congrats.mp3'));
-  const timerPlayer = useAudioPlayer(require('./assets/sounds/timer.mp3'));
 
   const boardShakeX = useRef(new Animated.Value(0)).current;
   const playerScale = useRef(new Animated.Value(1)).current;
@@ -260,23 +258,16 @@ export default function App() {
   }, [status, levelNumber]);
 
   React.useEffect(() => {
-    if (!TIMER_ENABLED) return;
+    if (status !== 'won' || gameCompleted) return;
 
-    if (screen !== 'game' || status !== 'playing' || secondsLeft <= 0) {
-      timerPlayer.pause();
-      timerPlayer.seekTo(0);
-      lastSecondsRef.current = secondsLeft;
-      return;
-    }
+    const id = setTimeout(() => {
+      newLevel();
+    }, 3000);
 
-    const prev = lastSecondsRef.current;
-    lastSecondsRef.current = secondsLeft;
-
-    if (secondsLeft <= 10 && secondsLeft !== prev) {
-      timerPlayer.seekTo(0);
-      timerPlayer.play();
-    }
-  }, [secondsLeft, status, screen, timerPlayer]);
+    return () => {
+      clearTimeout(id);
+    };
+  }, [status, gameCompleted]);
 
   const undo = () => {
     if (undosUsed >= UNDO_LIMIT) return;
