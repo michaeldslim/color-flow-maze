@@ -140,7 +140,7 @@ npm install -g eas-cli
 eas login
 
 # Link this project to EAS (first time only)
-eas init --id a7a0095e-ef0a-4f2c-8027-e9780e5c9f8a
+eas init
 ```
 
 ### Build
