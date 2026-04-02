@@ -2,8 +2,10 @@ import { StatusBar } from 'expo-status-bar';
 import { setAudioModeAsync, useAudioPlayer } from 'expo-audio';
 import Fireworks from './Fireworks';
 import * as Haptics from 'expo-haptics';
-import React, { useMemo, useRef, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   Animated,
   Easing,
   Platform,
@@ -33,6 +35,24 @@ import {
 
 type TScreen = 'intro' | 'game';
 
+type TSavedInLevelProgress = {
+  position: TPosition;
+  movesUsed: number;
+  status: TGameStatus;
+  undosUsed: number;
+  secondsLeft: number;
+  trail: boolean[][];
+};
+
+type TSavedProgress = {
+  schemaVersion: number;
+  screen: TScreen;
+  levelNumber: number;
+  levelSeeds: number[];
+  gameCompleted: boolean;
+  inLevelProgress?: TSavedInLevelProgress | null;
+};
+
 const MAX_LEVEL = 50;
 
 const UNDO_LIMIT = 5;
@@ -41,15 +61,79 @@ const LEVEL_TIME_SECONDS = 60;
 
 const TIMER_ENABLED = true;
 
+const PROGRESS_STORAGE_KEY = 'color-flow-maze:progress:v1';
+
+const PROGRESS_SCHEMA_VERSION = 1;
+
+function isValidSavedInLevelProgress(value: unknown): value is TSavedInLevelProgress {
+  if (!value || typeof value !== 'object') return false;
+
+  const candidate = value as Partial<TSavedInLevelProgress>;
+  const pos = candidate.position as Partial<TPosition> | undefined;
+
+  if (!pos || typeof pos.row !== 'number' || !Number.isInteger(pos.row)) return false;
+  if (typeof pos.col !== 'number' || !Number.isInteger(pos.col)) return false;
+  if (typeof candidate.movesUsed !== 'number' || !Number.isInteger(candidate.movesUsed)) return false;
+  if (
+    candidate.status !== 'playing' &&
+    candidate.status !== 'won' &&
+    candidate.status !== 'lost'
+  ) {
+    return false;
+  }
+  if (typeof candidate.undosUsed !== 'number' || !Number.isInteger(candidate.undosUsed)) return false;
+  if (typeof candidate.secondsLeft !== 'number' || !Number.isInteger(candidate.secondsLeft)) return false;
+  if (!Array.isArray(candidate.trail)) return false;
+  if (
+    candidate.trail.some(
+      (row) => !Array.isArray(row) || row.some((cell) => typeof cell !== 'boolean'),
+    )
+  ) {
+    return false;
+  }
+
+  return true;
+}
+
+function isValidTrailForBoard(trail: boolean[][], rows: number, cols: number): boolean {
+  if (trail.length !== rows) return false;
+  return trail.every((row) => row.length === cols && row.every((cell) => typeof cell === 'boolean'));
+}
+
+function isValidSavedProgress(value: unknown): value is TSavedProgress {
+  if (!value || typeof value !== 'object') return false;
+
+  const candidate = value as Partial<TSavedProgress>;
+
+  if (candidate.schemaVersion !== PROGRESS_SCHEMA_VERSION) return false;
+  if (candidate.screen !== 'intro' && candidate.screen !== 'game') return false;
+  if (typeof candidate.levelNumber !== 'number' || !Number.isInteger(candidate.levelNumber)) return false;
+  if (candidate.levelNumber < 1 || candidate.levelNumber > MAX_LEVEL) return false;
+  if (!Array.isArray(candidate.levelSeeds) || candidate.levelSeeds.length < candidate.levelNumber) return false;
+  if (candidate.levelSeeds.some((seed) => typeof seed !== 'number' || !Number.isInteger(seed))) return false;
+  if (typeof candidate.gameCompleted !== 'boolean') return false;
+  if (
+    candidate.inLevelProgress !== undefined &&
+    candidate.inLevelProgress !== null &&
+    !isValidSavedInLevelProgress(candidate.inLevelProgress)
+  ) {
+    return false;
+  }
+
+  return true;
+}
+
 export default function App() {
   const topInset = Platform.OS === 'android' ? RNStatusBar.currentHeight ?? 0 : 0;
   const bottomInset = Platform.OS === 'ios' ? 48 : 32;
 
   const [screen, setScreen] = useState<TScreen>('intro');
+  const [hasResumeProgress, setHasResumeProgress] = useState<boolean>(false);
 
   const [levelNumber, setLevelNumber] = useState<number>(1);
   const [levelSeeds, setLevelSeeds] = useState<number[]>(() => [Date.now() >>> 0]);
   const [gameCompleted, setGameCompleted] = useState<boolean>(false);
+  const [isProgressLoaded, setIsProgressLoaded] = useState<boolean>(false);
   const [showFireworks, setShowFireworks] = useState<boolean>(false);
   const prevGameCompletedRef = useRef<boolean>(false);
 
@@ -131,8 +215,47 @@ export default function App() {
     }
   };
 
-  React.useEffect(() => {
+  useEffect(() => {
     void setAudioModeAsync({ playsInSilentMode: true });
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadProgress = async () => {
+      try {
+        const raw = await AsyncStorage.getItem(PROGRESS_STORAGE_KEY);
+        if (!raw) return;
+
+        const parsed: unknown = JSON.parse(raw);
+        if (!isValidSavedProgress(parsed)) return;
+
+        if (cancelled) return;
+
+        setHasResumeProgress(
+          parsed.screen === 'game' ||
+            parsed.levelNumber > 1 ||
+            parsed.gameCompleted ||
+            parsed.inLevelProgress != null,
+        );
+        setLevelSeeds(parsed.levelSeeds);
+        setLevelNumber(parsed.levelNumber);
+        setGameCompleted(parsed.gameCompleted);
+        setPendingInLevelRestore(parsed.screen === 'game' ? parsed.inLevelProgress ?? null : null);
+      } catch {
+        // ignore invalid/corrupt save data
+      } finally {
+        if (!cancelled) {
+          setIsProgressLoaded(true);
+        }
+      }
+    };
+
+    void loadProgress();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const currentSeed = levelSeeds[levelNumber - 1] ?? (Date.now() >>> 0);
@@ -153,6 +276,7 @@ export default function App() {
     return t;
   });
   const [history, setHistory] = useState<TGameSnapshot[]>([]);
+  const [pendingInLevelRestore, setPendingInLevelRestore] = useState<TSavedInLevelProgress | null>(null);
 
   const pushHistory = (snapshot: TGameSnapshot) => {
     setHistory((prev) => [snapshot, ...prev].slice(0, 200));
@@ -189,15 +313,41 @@ export default function App() {
     setShowFireworks(false);
     setLevelSeeds([seed]);
     setLevelNumber(1);
+    setPendingInLevelRestore(null);
+    setHasResumeProgress(true);
   };
 
-  const startGame = () => {
+  const continueGame = () => {
+    setScreen('game');
+  };
+
+  const startNewGame = () => {
     restartGame();
     setScreen('game');
   };
 
-  React.useEffect(() => {
-    setGameCompleted(false);
+  useEffect(() => {
+    if (pendingInLevelRestore) {
+      const restoredPosition = pendingInLevelRestore.position;
+      const hasValidPosition = inBounds(grid, restoredPosition) && !isBlocked(grid, restoredPosition);
+      const hasValidTrail = isValidTrailForBoard(pendingInLevelRestore.trail, rows, cols);
+      const hasStartMarked = pendingInLevelRestore.trail[start.row]?.[start.col] === true;
+
+      if (hasValidPosition && hasValidTrail && hasStartMarked) {
+        setPosition(restoredPosition);
+        setMovesUsed(Math.max(0, pendingInLevelRestore.movesUsed));
+        setStatus(pendingInLevelRestore.status);
+        setUndosUsed(Math.min(UNDO_LIMIT, Math.max(0, pendingInLevelRestore.undosUsed)));
+        setSecondsLeft(Math.min(LEVEL_TIME_SECONDS, Math.max(0, pendingInLevelRestore.secondsLeft)));
+        setHistory([]);
+        setTrail(cloneTrail(pendingInLevelRestore.trail));
+        setPendingInLevelRestore(null);
+        return;
+      }
+
+      setPendingInLevelRestore(null);
+    }
+
     setPosition(start);
     setMovesUsed(0);
     setStatus('playing');
@@ -209,9 +359,58 @@ export default function App() {
       t[start.row][start.col] = true;
       return t;
     });
-  }, [levelNumber, rows, cols, start.row, start.col]);
+  }, [pendingInLevelRestore, levelNumber, rows, cols, start.row, start.col, grid]);
 
-  React.useEffect(() => {
+  useEffect(() => {
+    if (!isProgressLoaded) return;
+    if (pendingInLevelRestore) return;
+    if (screen === 'intro' && hasResumeProgress) return;
+
+    const saveProgress = async () => {
+      const payload: TSavedProgress = {
+        schemaVersion: PROGRESS_SCHEMA_VERSION,
+        screen,
+        levelNumber,
+        levelSeeds,
+        gameCompleted,
+        inLevelProgress:
+          screen === 'game'
+            ? {
+                position,
+                movesUsed,
+                status,
+                undosUsed,
+                secondsLeft,
+                trail,
+              }
+            : null,
+      };
+
+      try {
+        await AsyncStorage.setItem(PROGRESS_STORAGE_KEY, JSON.stringify(payload));
+      } catch {
+        // ignore storage write errors
+      }
+    };
+
+    void saveProgress();
+  }, [
+    isProgressLoaded,
+    pendingInLevelRestore,
+    screen,
+    levelNumber,
+    levelSeeds,
+    gameCompleted,
+    position,
+    movesUsed,
+    status,
+    undosUsed,
+    secondsLeft,
+    trail,
+    hasResumeProgress,
+  ]);
+
+  useEffect(() => {
     if (!TIMER_ENABLED) return;
     if (gameCompleted) return;
     if (status !== 'playing') return;
@@ -232,7 +431,7 @@ export default function App() {
     };
   }, [status, secondsLeft, gameCompleted]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (gameCompleted && !prevGameCompletedRef.current) {
       setShowFireworks(true);
       setTimeout(() => setShowFireworks(false), 4500);
@@ -240,7 +439,7 @@ export default function App() {
     prevGameCompletedRef.current = gameCompleted;
   }, [gameCompleted]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const last = lastStatusRef.current;
     if (last !== 'won' && status === 'won') {
       void triggerWinFeedback();
@@ -257,7 +456,7 @@ export default function App() {
     lastStatusRef.current = status;
   }, [status, levelNumber]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (status !== 'won' || gameCompleted) return;
 
     const id = setTimeout(() => {
@@ -334,6 +533,17 @@ export default function App() {
         ? 'Time up'
         : 'Use the D-pad';
 
+  if (!isProgressLoaded) {
+    return (
+      <View style={styles.safeArea}>
+        <View style={[styles.container, styles.loadingContainer]}>
+          <ActivityIndicator size="large" color="#ffffff" />
+          <Text style={styles.subtitle}>Loading progress...</Text>
+        </View>
+      </View>
+    );
+  }
+
   if (screen === 'intro') {
     return (
       <View style={styles.safeArea}>
@@ -342,6 +552,7 @@ export default function App() {
             styles.introScrollContent,
             { paddingTop: 12 + topInset, paddingBottom: 16 + bottomInset },
           ]}
+          alwaysBounceVertical
           showsVerticalScrollIndicator={false}
         >
           <Text style={styles.title}>Color Flow Maze</Text>
@@ -366,10 +577,27 @@ export default function App() {
           </View>
 
           <Pressable
-            onPress={startGame}
-            style={({ pressed }) => [styles.primaryButton, pressed && styles.buttonPressed]}
+            onPress={continueGame}
+            disabled={!hasResumeProgress}
+            style={({ pressed }) => [
+              styles.primaryButton,
+              styles.introSecondaryButton,
+              !hasResumeProgress && styles.buttonDisabled,
+              pressed && hasResumeProgress && styles.buttonPressed,
+            ]}
           >
-            <Text style={styles.primaryButtonText}>Start Game / 게임 시작</Text>
+            <Text style={[styles.primaryButtonText, hasResumeProgress && styles.resumePrimaryButtonText]}>
+              {hasResumeProgress
+                ? `From Level ${levelNumber} / 레벨 ${levelNumber} 이어하기`
+                : 'Continue / 이어하기'}
+            </Text>
+          </Pressable>
+
+          <Pressable
+            onPress={startNewGame}
+            style={({ pressed }) => [styles.button, styles.introSecondaryButton, pressed && styles.buttonPressed]}
+          >
+            <Text style={styles.buttonText}>New Game / 새 게임</Text>
           </Pressable>
 
           <StatusBar style="auto" />
@@ -548,7 +776,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingHorizontal: 16,
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
   },
   hudContainer: {
     marginTop: 10,
@@ -610,6 +838,14 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '800',
     letterSpacing: 0.2,
+  },
+  resumePrimaryButtonText: {
+    fontSize: 13,
+  },
+  introSecondaryButton: {
+    marginTop: 10,
+    width: '100%',
+    maxWidth: 420,
   },
   hudRow: {
     width: '100%',
@@ -688,10 +924,15 @@ const styles = StyleSheet.create({
   controlsButton: {
     marginHorizontal: 6,
   },
+  loadingContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 12,
+  },
   dpad: {
-    marginTop: 14,
     width: '100%',
     alignItems: 'center',
+    marginTop: 4,
   },
   dpadRow: {
     flexDirection: 'row',
