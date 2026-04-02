@@ -547,17 +547,20 @@ export default function App() {
   if (screen === 'intro') {
     return (
       <View style={styles.safeArea}>
+        <View style={[styles.introHeader, { paddingTop: 12 + topInset }]}>
+          <Text style={styles.title}>Color Flow Maze</Text>
+          <Text style={styles.subtitle}>How to play</Text>
+        </View>
+
         <ScrollView
+          style={styles.introScroll}
           contentContainerStyle={[
             styles.introScrollContent,
-            { paddingTop: 12 + topInset, paddingBottom: 40 + bottomInset },
+            { paddingBottom: 40 + bottomInset },
           ]}
           alwaysBounceVertical
           showsVerticalScrollIndicator={false}
         >
-          <Text style={styles.title}>Color Flow Maze</Text>
-          <Text style={styles.subtitle}>How to play</Text>
-
           <View style={styles.introCard}>
             <Text style={styles.introSectionTitle}>플레이 방법</Text>
             <Text style={styles.introText}>- 방향 버튼을 누르세요.</Text>
@@ -771,6 +774,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 12,
     alignItems: 'center',
+  },
+  introHeader: {
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    paddingBottom: 8,
+  },
+  introScroll: {
+    flex: 1,
   },
   introScrollContent: {
     flexGrow: 1,
