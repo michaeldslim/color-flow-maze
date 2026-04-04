@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   Animated,
   Easing,
+  Image,
   Platform,
   Pressable,
   ScrollView,
@@ -629,7 +630,6 @@ export default function App() {
                 {row.map((cell, c) => {
                   const isPlayer = position.row === r && position.col === c;
                   const isGoal = goal.row === r && goal.col === c;
-                  const isStart = start.row === r && start.col === c;
                   const isPainted = trail[r]?.[c] ?? false;
                   const isWallCell = cell === 'wall';
 
@@ -640,12 +640,17 @@ export default function App() {
                         styles.cell,
                         isWallCell && styles.cellWall,
                         !isWallCell && isPainted && styles.cellPainted,
-                        isStart && styles.cellStart,
                         isGoal && styles.cellGoal,
+                        isPlayer && styles.cellPlayer,
                       ]}
                     >
                       {isPlayer ? (
-                        <Animated.View style={[styles.playerDot, { transform: [{ scale: playerScale }] }]} />
+                        <Animated.Image
+                          source={require('./assets/car.png')}
+                          style={[styles.playerEmoji, { transform: [{ scale: playerScale }] }]}
+                        />
+                      ) : isGoal ? (
+                        <Text style={styles.goalEmoji}>🏠</Text>
                       ) : null}
                     </View>
                   );
@@ -905,21 +910,31 @@ const styles = StyleSheet.create({
     backgroundColor: '#2563EB',
     borderColor: '#2563EB',
   },
-  cellStart: {
-    backgroundColor: '#16A34A',
-    borderColor: '#16A34A',
-  },
   cellGoal: {
     backgroundColor: '#F59E0B',
     borderColor: '#F59E0B',
   },
-  playerDot: {
-    width: '58%',
-    height: '58%',
-    borderRadius: 999,
-    backgroundColor: '#E6EEF9',
-    borderWidth: 2,
-    borderColor: '#0B1220',
+  cellPlayer: {
+    backgroundColor: '#16A34A',
+    borderColor: '#16A34A',
+  },
+  playerEmojiWrapper: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  playerEmoji: {
+    width: 28,
+    height: 28,
+    resizeMode: 'contain',
+    borderRadius: 6,
+    overflow: 'hidden',
+  },
+  goalEmoji: {
+    fontSize: 16,
+    textAlign: 'center',
+    textAlignVertical: 'center',
+    lineHeight: 18,
+    includeFontPadding: false,
   },
   controlsRow: {
     marginTop: 24,
