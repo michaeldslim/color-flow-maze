@@ -146,6 +146,9 @@ export default function App() {
   const boardShakeX = useRef(new Animated.Value(0)).current;
   const playerScale = useRef(new Animated.Value(1)).current;
   const goalPulse = useRef(new Animated.Value(0)).current;
+  const timerPulse = useRef(new Animated.Value(0)).current;
+  const winFlashOpacity = useRef(new Animated.Value(0)).current;
+  const lastTimerWarningHapticRef = useRef<number>(LEVEL_TIME_SECONDS + 1);
 
   const shakeBoard = () => {
     boardShakeX.stopAnimation();
@@ -301,8 +304,6 @@ export default function App() {
 
   const rows = grid.length;
   const cols = grid[0]?.length ?? 0;
-  const isDenseBoard = rows >= 12;
-  const goalEmojiDenseAndroidFix = Platform.OS === 'android' && isDenseBoard;
 
   const [position, setPosition] = useState<TPosition>(start);
   const [movesUsed, setMovesUsed] = useState<number>(0);
@@ -471,6 +472,40 @@ export default function App() {
   }, [status, secondsLeft, gameCompleted]);
 
   useEffect(() => {
+    if (!TIMER_ENABLED) return;
+
+    const shouldWarn = screen === 'game' && status === 'playing' && secondsLeft > 0 && secondsLeft <= 10;
+    if (!shouldWarn) {
+      timerPulse.stopAnimation();
+      timerPulse.setValue(0);
+      lastTimerWarningHapticRef.current = LEVEL_TIME_SECONDS + 1;
+      return;
+    }
+
+    timerPulse.stopAnimation();
+    timerPulse.setValue(0);
+    Animated.sequence([
+      Animated.timing(timerPulse, {
+        toValue: 1,
+        duration: 180,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: true,
+      }),
+      Animated.timing(timerPulse, {
+        toValue: 0,
+        duration: 180,
+        easing: Easing.in(Easing.quad),
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    if (secondsLeft % 2 === 0 && lastTimerWarningHapticRef.current !== secondsLeft) {
+      lastTimerWarningHapticRef.current = secondsLeft;
+      void Haptics.selectionAsync().catch(() => undefined);
+    }
+  }, [screen, status, secondsLeft, timerPulse]);
+
+  useEffect(() => {
     if (gameCompleted && !prevGameCompletedRef.current) {
       setShowFireworks(true);
       setTimeout(() => setShowFireworks(false), 4500);
@@ -482,6 +517,23 @@ export default function App() {
     const last = lastStatusRef.current;
     if (last !== 'won' && status === 'won') {
       void triggerWinFeedback();
+      winFlashOpacity.stopAnimation();
+      winFlashOpacity.setValue(0);
+      Animated.sequence([
+        Animated.timing(winFlashOpacity, {
+          toValue: 0.34,
+          duration: 140,
+          easing: Easing.out(Easing.quad),
+          useNativeDriver: true,
+        }),
+        Animated.timing(winFlashOpacity, {
+          toValue: 0,
+          duration: 260,
+          easing: Easing.in(Easing.quad),
+          useNativeDriver: true,
+        }),
+      ]).start();
+
       winPlayer.seekTo(0);
       winPlayer.play();
 
@@ -493,7 +545,7 @@ export default function App() {
       }
     }
     lastStatusRef.current = status;
-  }, [status, levelNumber]);
+  }, [status, levelNumber, winFlashOpacity]);
 
   useEffect(() => {
     if (status !== 'won' || gameCompleted) return;
@@ -571,6 +623,9 @@ export default function App() {
       : status === 'lost'
         ? 'Time up'
         : 'Use the D-pad';
+
+  const isTimerWarning = TIMER_ENABLED && status === 'playing' && secondsLeft > 0 && secondsLeft <= 10;
+  const isTimerCritical = isTimerWarning && secondsLeft <= 5;
 
   if (!isProgressLoaded) {
     return (
@@ -656,12 +711,31 @@ export default function App() {
         <View style={styles.hudContainer}>
           <View style={styles.hudRow}>
             <Text style={styles.hudText}>Level: {levelNumber}/{MAX_LEVEL}</Text>
-            <Text style={styles.hudText}>Time: {secondsLeft}s</Text>
+            <Animated.Text
+              style={[
+                styles.hudText,
+                isTimerWarning && styles.hudTimeWarning,
+                isTimerCritical && styles.hudTimeCritical,
+                isTimerWarning && {
+                  transform: [
+                    {
+                      scale: timerPulse.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [1, 1.08],
+                      }),
+                    },
+                  ],
+                },
+              ]}
+            >
+              Time: {secondsLeft}s
+            </Animated.Text>
           </View>
         </View>
 
         <View style={styles.boardWrapper}>
-          <Animated.View style={[styles.board, { transform: [{ translateX: boardShakeX }] }]}>
+          <Animated.View style={[styles.board, { transform: [{ translateX: boardShakeX }] }]}> 
+            <Animated.View pointerEvents="none" style={[styles.winFlashOverlay, { opacity: winFlashOpacity }]} />
             {grid.map((row, r) => (
               <View key={`r-${r}`} style={styles.boardRow}>
                 {row.map((cell, c) => {
@@ -687,16 +761,12 @@ export default function App() {
                           style={[styles.playerEmoji, { transform: [{ scale: playerScale }] }]}
                         />
                       ) : isGoal ? (
-                        <View style={styles.goalEmojiSlot}>
-                          <Animated.Text
+                        <View style={styles.goalMarkerSlot}>
+                          <Animated.View
                             style={[
-                              styles.goalEmoji,
-                              styles.goalEmojiAnimated,
+                              styles.goalMarker,
                               {
                                 transform: [
-                                  {
-                                    translateX: goalEmojiDenseAndroidFix ? -1 : 0,
-                                  },
                                   {
                                     translateY: goalPulse.interpolate({
                                       inputRange: [0, 1],
@@ -706,15 +776,17 @@ export default function App() {
                                   {
                                     scale: goalPulse.interpolate({
                                       inputRange: [0, 1],
-                                      outputRange: [1, 1.02],
+                                      outputRange: [1, 1.03],
                                     }),
                                   },
                                 ],
                               },
                             ]}
                           >
-                            🏠
-                          </Animated.Text>
+                            <View style={styles.goalMarkerRing} />
+                            <View style={styles.goalMarkerCore} />
+                            <View style={styles.goalMarkerDot} />
+                          </Animated.View>
                         </View>
                       ) : null}
                     </View>
@@ -804,12 +876,10 @@ export default function App() {
             delayLongPress={500}
             style={({ pressed }) => [
               styles.button,
-              styles.controlsButtonSize,
-              styles.controlsButton,
               pressed && styles.buttonPressed,
             ]}
           >
-            <Text style={styles.buttonText}>Reset</Text>
+            <Text style={styles.buttonText}>Reset / Restart</Text>
           </Pressable>
 
           <Pressable
@@ -938,6 +1008,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
+  hudTimeWarning: {
+    color: '#FBBF24',
+  },
+  hudTimeCritical: {
+    color: '#FB7185',
+  },
   boardWrapper: {
     marginTop: 20,
     width: '100%',
@@ -952,6 +1028,16 @@ const styles = StyleSheet.create({
     padding: 10,
     borderWidth: 1,
     borderColor: '#1E2A45',
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  winFlashOverlay: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    backgroundColor: '#7DD3FC',
   },
   boardRow: {
     flex: 1,
@@ -994,22 +1080,39 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     overflow: 'hidden',
   },
-  goalEmoji: {
-    fontSize: 16,
-    textAlign: 'center',
-    lineHeight: 16,
-    includeFontPadding: false,
-  },
-  goalEmojiSlot: {
+  goalMarkerSlot: {
     width: '100%',
     height: '100%',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  goalEmojiAnimated: {
-    textShadowColor: '#FDE68A',
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 8,
+  goalMarker: {
+    width: '74%',
+    height: '74%',
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  goalMarkerRing: {
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
+    borderRadius: 999,
+    borderWidth: 2,
+    borderColor: '#FEF3C7',
+  },
+  goalMarkerCore: {
+    width: '58%',
+    height: '58%',
+    borderRadius: 999,
+    backgroundColor: '#FDE68A',
+  },
+  goalMarkerDot: {
+    position: 'absolute',
+    width: '28%',
+    height: '28%',
+    borderRadius: 999,
+    backgroundColor: '#B45309',
   },
   controlsRow: {
     marginTop: 24,
