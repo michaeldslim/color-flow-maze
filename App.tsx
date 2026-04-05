@@ -145,6 +145,7 @@ export default function App() {
 
   const boardShakeX = useRef(new Animated.Value(0)).current;
   const playerScale = useRef(new Animated.Value(1)).current;
+  const goalPulse = useRef(new Animated.Value(0)).current;
 
   const shakeBoard = () => {
     boardShakeX.stopAnimation();
@@ -182,6 +183,41 @@ export default function App() {
       }),
     ]).start();
   };
+
+  useEffect(() => {
+    if (screen !== 'game') {
+      goalPulse.stopAnimation();
+      goalPulse.setValue(0);
+      return;
+    }
+
+    goalPulse.stopAnimation();
+    goalPulse.setValue(0);
+
+    const goalPulseLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(goalPulse, {
+          toValue: 1,
+          duration: 700,
+          easing: Easing.out(Easing.quad),
+          useNativeDriver: true,
+        }),
+        Animated.timing(goalPulse, {
+          toValue: 0,
+          duration: 700,
+          easing: Easing.inOut(Easing.quad),
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+
+    goalPulseLoop.start();
+
+    return () => {
+      goalPulseLoop.stop();
+      goalPulse.stopAnimation();
+    };
+  }, [goalPulse, levelNumber, screen]);
 
   const pulsePlayer = (strength: 'move' | 'win') => {
     playerScale.stopAnimation();
@@ -265,6 +301,8 @@ export default function App() {
 
   const rows = grid.length;
   const cols = grid[0]?.length ?? 0;
+  const isDenseBoard = rows >= 12;
+  const goalEmojiDenseAndroidFix = Platform.OS === 'android' && isDenseBoard;
 
   const [position, setPosition] = useState<TPosition>(start);
   const [movesUsed, setMovesUsed] = useState<number>(0);
@@ -650,7 +688,41 @@ export default function App() {
                           style={[styles.playerEmoji, { transform: [{ scale: playerScale }] }]}
                         />
                       ) : isGoal ? (
-                        <Text style={styles.goalEmoji}>🏠</Text>
+                        <Animated.View
+                          style={[
+                            styles.goalEmojiSlot,
+                            {
+                              opacity: goalPulse.interpolate({
+                                inputRange: [0, 1],
+                                outputRange: [0.86, 1],
+                              }),
+                              transform: [
+                                {
+                                  translateY: goalPulse.interpolate({
+                                    inputRange: [0, 1],
+                                    outputRange: [1, -2],
+                                  }),
+                                },
+                                {
+                                  scale: goalPulse.interpolate({
+                                    inputRange: [0, 1],
+                                    outputRange: [1, 1.14],
+                                  }),
+                                },
+                              ],
+                            },
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.goalEmoji,
+                              styles.goalEmojiAnimated,
+                              goalEmojiDenseAndroidFix && styles.goalEmojiDenseAndroidFix,
+                            ]}
+                          >
+                            🏠
+                          </Text>
+                        </Animated.View>
                       ) : null}
                     </View>
                   );
@@ -932,9 +1004,22 @@ const styles = StyleSheet.create({
   goalEmoji: {
     fontSize: 16,
     textAlign: 'center',
-    textAlignVertical: 'center',
-    lineHeight: 18,
+    lineHeight: 16,
     includeFontPadding: false,
+  },
+  goalEmojiSlot: {
+    width: '100%',
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  goalEmojiAnimated: {
+    textShadowColor: '#FDE68A',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 8,
+  },
+  goalEmojiDenseAndroidFix: {
+    transform: [{ translateX: -1 }],
   },
   controlsRow: {
     marginTop: 24,
