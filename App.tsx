@@ -588,11 +588,10 @@ export default function App() {
       <View style={styles.safeArea}>
         <View style={[styles.introHeader, { paddingTop: 12 + topInset }]}>
           <Text style={styles.title}>Color Flow Maze</Text>
-          <Text style={styles.subtitle}>How to play</Text>
+          <Text style={styles.subtitle}>색깔 길찾기</Text>
         </View>
 
         <ScrollView
-          style={styles.introScroll}
           contentContainerStyle={[
             styles.introScrollContent,
             { paddingBottom: 40 + bottomInset },
@@ -873,7 +872,7 @@ const styles = StyleSheet.create({
   subtitle: {
     marginTop: 6,
     color: '#B6C5E3',
-    fontSize: 14,
+    fontSize: 16,
   },
   introCard: {
     marginTop: 16,
