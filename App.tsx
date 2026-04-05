@@ -136,6 +136,7 @@ export default function App() {
   const [gameCompleted, setGameCompleted] = useState<boolean>(false);
   const [isProgressLoaded, setIsProgressLoaded] = useState<boolean>(false);
   const [showFireworks, setShowFireworks] = useState<boolean>(false);
+  const [showResetHintInline, setShowResetHintInline] = useState<boolean>(false);
   const prevGameCompletedRef = useRef<boolean>(false);
 
   const lastStatusRef = useRef<TGameStatus>('playing');
@@ -149,6 +150,8 @@ export default function App() {
   const timerPulse = useRef(new Animated.Value(0)).current;
   const winFlashOpacity = useRef(new Animated.Value(0)).current;
   const lastTimerWarningHapticRef = useRef<number>(LEVEL_TIME_SECONDS + 1);
+  const hasShownResetHintInlineRef = useRef<boolean>(false);
+  const didTriggerResetLongPressRef = useRef<boolean>(false);
 
   const shakeBoard = () => {
     boardShakeX.stopAnimation();
@@ -186,6 +189,39 @@ export default function App() {
       }),
     ]).start();
   };
+
+  const showResetHintInlineOnce = () => {
+    if (hasShownResetHintInlineRef.current) return;
+    hasShownResetHintInlineRef.current = true;
+    setShowResetHintInline(true);
+  };
+
+  const handleResetPress = () => {
+    if (didTriggerResetLongPressRef.current) {
+      didTriggerResetLongPressRef.current = false;
+      return;
+    }
+
+    reset();
+    showResetHintInlineOnce();
+  };
+
+  const handleResetLongPress = () => {
+    didTriggerResetLongPressRef.current = true;
+    restartGame();
+  };
+
+  useEffect(() => {
+    if (!showResetHintInline) return;
+
+    const timeoutId = setTimeout(() => {
+      setShowResetHintInline(false);
+    }, 1800);
+
+    return () => {
+      clearTimeout(timeoutId);
+    };
+  }, [showResetHintInline]);
 
   useEffect(() => {
     if (screen !== 'game') {
@@ -870,17 +906,26 @@ export default function App() {
             <Text style={styles.buttonText}>Undo ({Math.max(0, UNDO_LIMIT - undosUsed)})</Text>
           </Pressable>
 
-          <Pressable
-            onPress={reset}
-            onLongPress={restartGame}
-            delayLongPress={500}
-            style={({ pressed }) => [
-              styles.button,
-              pressed && styles.buttonPressed,
-            ]}
-          >
-            <Text style={styles.buttonText}>Reset / Restart</Text>
-          </Pressable>
+          <View style={styles.resetButtonWrap}>
+            {showResetHintInline ? (
+              <View style={styles.resetHintBubble}>
+                <Text style={styles.resetHintText}>Long press Reset to restart</Text>
+              </View>
+            ) : null}
+            <Pressable
+              onPress={handleResetPress}
+              onLongPress={handleResetLongPress}
+              delayLongPress={500}
+              style={({ pressed }) => [
+                styles.button,
+                styles.controlsButtonSize,
+                styles.controlsButton,
+                pressed && styles.buttonPressed,
+              ]}
+            >
+              <Text style={styles.buttonText}>Reset ⏱</Text>
+            </Pressable>
+          </View>
 
           <Pressable
             onPress={gameCompleted ? restartGame : newLevel}
@@ -1127,6 +1172,27 @@ const styles = StyleSheet.create({
   },
   controlsButton: {
     marginHorizontal: 6,
+  },
+  resetButtonWrap: {
+    position: 'relative',
+  },
+  resetHintBubble: {
+    position: 'absolute',
+    bottom: '100%',
+    marginBottom: 6,
+    alignSelf: 'center',
+    backgroundColor: '#0F172A',
+    borderColor: '#334155',
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingVertical: 5,
+    paddingHorizontal: 8,
+    zIndex: 10,
+  },
+  resetHintText: {
+    color: '#CBD5E1',
+    fontSize: 11,
+    fontWeight: '600',
   },
   loadingContainer: {
     justifyContent: 'center',
