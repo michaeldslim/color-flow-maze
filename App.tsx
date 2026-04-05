@@ -198,14 +198,14 @@ export default function App() {
       Animated.sequence([
         Animated.timing(goalPulse, {
           toValue: 1,
-          duration: 700,
+          duration: 380,
           easing: Easing.out(Easing.quad),
           useNativeDriver: true,
         }),
         Animated.timing(goalPulse, {
           toValue: 0,
-          duration: 700,
-          easing: Easing.inOut(Easing.quad),
+          duration: 420,
+          easing: Easing.in(Easing.quad),
           useNativeDriver: true,
         }),
       ]),
@@ -688,41 +688,35 @@ export default function App() {
                           style={[styles.playerEmoji, { transform: [{ scale: playerScale }] }]}
                         />
                       ) : isGoal ? (
-                        <Animated.View
-                          style={[
-                            styles.goalEmojiSlot,
-                            {
-                              opacity: goalPulse.interpolate({
-                                inputRange: [0, 1],
-                                outputRange: [0.86, 1],
-                              }),
-                              transform: [
-                                {
-                                  translateY: goalPulse.interpolate({
-                                    inputRange: [0, 1],
-                                    outputRange: [1, -2],
-                                  }),
-                                },
-                                {
-                                  scale: goalPulse.interpolate({
-                                    inputRange: [0, 1],
-                                    outputRange: [1, 1.14],
-                                  }),
-                                },
-                              ],
-                            },
-                          ]}
-                        >
-                          <Text
+                        <View style={styles.goalEmojiSlot}>
+                          <Animated.Text
                             style={[
                               styles.goalEmoji,
                               styles.goalEmojiAnimated,
-                              goalEmojiDenseAndroidFix && styles.goalEmojiDenseAndroidFix,
+                              {
+                                transform: [
+                                  {
+                                    translateX: goalEmojiDenseAndroidFix ? -1 : 0,
+                                  },
+                                  {
+                                    translateY: goalPulse.interpolate({
+                                      inputRange: [0, 1],
+                                      outputRange: [0.5, -2],
+                                    }),
+                                  },
+                                  {
+                                    scale: goalPulse.interpolate({
+                                      inputRange: [0, 1],
+                                      outputRange: [1, 1.02],
+                                    }),
+                                  },
+                                ],
+                              },
                             ]}
                           >
                             🏠
-                          </Text>
-                        </Animated.View>
+                          </Animated.Text>
+                        </View>
                       ) : null}
                     </View>
                   );
@@ -1017,9 +1011,6 @@ const styles = StyleSheet.create({
     textShadowColor: '#FDE68A',
     textShadowOffset: { width: 0, height: 0 },
     textShadowRadius: 8,
-  },
-  goalEmojiDenseAndroidFix: {
-    transform: [{ translateX: -1 }],
   },
   controlsRow: {
     marginTop: 24,
