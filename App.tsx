@@ -12,11 +12,11 @@ import {
   Platform,
   Pressable,
   ScrollView,
-  StatusBar as RNStatusBar,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
+import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   cloneTrail,
   createTrail,
@@ -124,9 +124,9 @@ function isValidSavedProgress(value: unknown): value is TSavedProgress {
   return true;
 }
 
-export default function App() {
-  const topInset = Platform.OS === 'android' ? RNStatusBar.currentHeight ?? 0 : 0;
-  const bottomInset = Platform.OS === 'ios' ? 48 : 32;
+function AppContent() {
+  const insets = useSafeAreaInsets();
+  const bottomInset = Platform.OS === 'ios' ? Math.max(insets.bottom, 16) + 16 : 32;
 
   const [screen, setScreen] = useState<TScreen>('intro');
   const [hasResumeProgress, setHasResumeProgress] = useState<boolean>(false);
@@ -665,19 +665,19 @@ export default function App() {
 
   if (!isProgressLoaded) {
     return (
-      <View style={styles.safeArea}>
+      <SafeAreaView style={styles.safeArea}>
         <View style={[styles.container, styles.loadingContainer]}>
           <ActivityIndicator size="large" color="#ffffff" />
           <Text style={styles.subtitle}>Loading progress...</Text>
         </View>
-      </View>
+      </SafeAreaView>
     );
   }
 
   if (screen === 'intro') {
     return (
-      <View style={styles.safeArea}>
-        <View style={[styles.introHeader, { paddingTop: 12 + topInset }]}>
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.introHeader}>
           <Text style={styles.title}>Color Flow Maze</Text>
           <Text style={styles.subtitle}>색깔 길찾기</Text>
         </View>
@@ -734,13 +734,13 @@ export default function App() {
 
           <StatusBar style="auto" />
         </ScrollView>
-      </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={styles.safeArea}>
-      <View style={[styles.container, { paddingTop: 12 + topInset, paddingBottom: 12 + bottomInset }]}>
+    <SafeAreaView style={styles.safeArea}>
+      <View style={[styles.container, { paddingBottom: 12 + bottomInset }]}>
         <Text style={styles.title}>Color Flow Maze</Text>
         <Text style={styles.subtitle}>{headerText}</Text>
 
@@ -945,7 +945,15 @@ export default function App() {
         <StatusBar style="auto" />
         <Fireworks visible={showFireworks} />
       </View>
-    </View>
+    </SafeAreaView>
+  );
+}
+
+export default function App() {
+  return (
+    <SafeAreaProvider>
+      <AppContent />
+    </SafeAreaProvider>
   );
 }
 
