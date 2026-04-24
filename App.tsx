@@ -17,6 +17,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import Intro from './src/screens/Intro';
 import {
   cloneTrail,
   createTrail,
@@ -676,65 +677,13 @@ function AppContent() {
 
   if (screen === 'intro') {
     return (
-      <SafeAreaView style={styles.safeArea}>
-        <View style={styles.introHeader}>
-          <Text style={styles.title}>Color Flow Maze</Text>
-          <Text style={styles.subtitle}>색깔 길찾기</Text>
-        </View>
-
-        <ScrollView
-          contentContainerStyle={[
-            styles.introScrollContent,
-            { paddingBottom: 40 + bottomInset },
-          ]}
-          alwaysBounceVertical
-          showsVerticalScrollIndicator={false}
-        >
-          <View style={styles.introCard}>
-            <Text style={styles.introSectionTitle}>플레이 방법</Text>
-            <Text style={styles.introText}>- 방향 버튼을 누르세요.</Text>
-            <Text style={styles.introText}>- 벽에 부딪힐 때까지 미끄러집니다.</Text>
-            <Text style={styles.introText}>- 오렌지색 칸에 “멈춰야” 승리합니다.</Text>
-            <Text style={styles.introText}>- 50레벨을 클리어하면 게임을 완료합니다.</Text>
-            <Text style={styles.introText}>- Reset 버튼을 길게 누르면 게임이 처음부터 다시 시작됩니다.</Text>
-
-            <View style={styles.introDivider} />
-
-            <Text style={styles.introSectionTitle}>How to play</Text>
-            <Text style={styles.introText}>- Press the arrow buttons.</Text>
-            <Text style={styles.introText}>- You slide until you hit a wall.</Text>
-            <Text style={styles.introText}>- You win only if you STOP on the orange tile.</Text>
-            <Text style={styles.introText}>- Beat Level 50 to finish the game.</Text>
-            <Text style={styles.introText}>- Long-press Reset to restart the whole game.</Text>
-          </View>
-
-          <Pressable
-            onPress={continueGame}
-            disabled={!hasResumeProgress}
-            style={({ pressed }) => [
-              styles.primaryButton,
-              styles.introSecondaryButton,
-              !hasResumeProgress && styles.buttonDisabled,
-              pressed && hasResumeProgress && styles.buttonPressed,
-            ]}
-          >
-            <Text style={[styles.primaryButtonText, hasResumeProgress && styles.resumePrimaryButtonText]}>
-              {hasResumeProgress
-                ? `From Level ${levelNumber} / 레벨 ${levelNumber} 이어하기`
-                : 'Continue / 이어하기'}
-            </Text>
-          </Pressable>
-
-          <Pressable
-            onPress={startNewGame}
-            style={({ pressed }) => [styles.button, styles.introSecondaryButton, pressed && styles.buttonPressed]}
-          >
-            <Text style={styles.buttonText}>New Game / 새 게임</Text>
-          </Pressable>
-
-          <StatusBar style="auto" />
-        </ScrollView>
-      </SafeAreaView>
+      <Intro
+        hasResumeProgress={hasResumeProgress}
+        levelNumber={levelNumber}
+        continueGame={continueGame}
+        startNewGame={startNewGame}
+        bottomInset={bottomInset}
+      />
     );
   }
 
