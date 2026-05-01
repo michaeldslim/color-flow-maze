@@ -25,14 +25,16 @@ const Board: React.FC<Props> = ({ grid, position, trail, goal, playerScale, goal
             const isGoal = goal.row === r && goal.col === c;
             const isPainted = trail[r]?.[c] ?? false;
             const isWallCell = cell === 'wall';
+            const isIceCell = cell === 'ice';
 
             return (
               <View
                 key={`c-${r}-${c}`}
-                style={[
+                  style={[
                   styles.cell,
                   isWallCell && styles.cellWall,
-                  !isWallCell && isPainted && styles.cellPainted,
+                  isIceCell && styles.cellIce,
+                  !isWallCell && !isIceCell && isPainted && styles.cellPainted,
                   isGoal && styles.cellGoal,
                   isPlayer && styles.cellPlayer,
                 ]}

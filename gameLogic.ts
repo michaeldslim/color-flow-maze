@@ -1,4 +1,4 @@
-export type TCell = 'empty' | 'wall' | 'start' | 'goal';
+export type TCell = 'empty' | 'wall' | 'start' | 'goal' | 'ice';
 
 export type TDirection = 'up' | 'down' | 'left' | 'right';
 
@@ -125,6 +125,8 @@ export function slide(grid: TCell[][], from: TPosition, direction: TDirection): 
 
   while (!isBlocked(grid, next)) {
     cur = next;
+    // stop early if this cell is a stoppable cell (and not ice)
+    if (isStoppableCell(grid, cur)) return cur;
     next = { row: cur.row + dr, col: cur.col + dc };
   }
 
@@ -133,7 +135,8 @@ export function slide(grid: TCell[][], from: TPosition, direction: TDirection): 
 
 export function isStoppableCell(grid: TCell[][], pos: TPosition): boolean {
   if (!inBounds(grid, pos)) return false;
-  if (grid[pos.row]?.[pos.col] === 'wall') return false;
+  // ice tiles are not stoppable (semi-slippery)
+  if (grid[pos.row]?.[pos.col] === 'wall' || grid[pos.row]?.[pos.col] === 'ice') return false;
   const candidates: TPosition[] = [
     { row: pos.row - 1, col: pos.col },
     { row: pos.row + 1, col: pos.col },
@@ -215,13 +218,20 @@ export function generateLevel(levelNumber: number, seed: number): TLevel {
         : 0.241 + (levelNumber - 20) * 0.002;
   const wallProbability = Math.min(0.26, wallProbabilityBase);
 
+  // Ice probability increases slowly with level to add variety
+  const iceProbabilityBase = 0.02 + (levelNumber - 1) * 0.003;
+  const iceProbability = Math.min(0.12, iceProbabilityBase);
+
   const rng = createSeededRng(seed ^ (levelNumber * 2654435761));
 
   for (let attempts = 0; attempts < 200; attempts += 1) {
     const grid: TCell[][] = Array.from({ length: size }, (_r, r) =>
       Array.from({ length: size }, (_c, c) => {
         if (r === 0 || c === 0 || r === size - 1 || c === size - 1) return 'wall';
-        return rng.nextFloat() < wallProbability ? 'wall' : 'empty';
+        const v = rng.nextFloat();
+        if (v < wallProbability) return 'wall';
+        if (v < wallProbability + iceProbability) return 'ice';
+        return 'empty';
       }),
     );
 

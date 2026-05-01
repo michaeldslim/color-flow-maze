@@ -391,6 +391,7 @@ function AppContent() {
                   const isGoal = goal.row === r && goal.col === c;
                   const isPainted = trail[r]?.[c] ?? false;
                   const isWallCell = cell === 'wall';
+                  const isIceCell = cell === 'ice';
 
                   return (
                     <View
@@ -398,7 +399,8 @@ function AppContent() {
                       style={[
                         styles.cell,
                         isWallCell && styles.cellWall,
-                        !isWallCell && isPainted && styles.cellPainted,
+                        isIceCell && styles.cellIce,
+                        !isWallCell && !isIceCell && isPainted && styles.cellPainted,
                         isGoal && styles.cellGoal,
                         isPlayer && styles.cellPlayer,
                       ]}
@@ -721,6 +723,10 @@ const styles = StyleSheet.create({
   cellWall: {
     backgroundColor: '#4B2E83',
     borderColor: '#4B2E83',
+  },
+  cellIce: {
+    backgroundColor: '#1E3A8A',
+    borderColor: '#2563EB',
   },
   cellPainted: {
     backgroundColor: '#2563EB',
