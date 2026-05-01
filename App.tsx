@@ -2,16 +2,15 @@ import { StatusBar } from 'expo-status-bar';
 import { setAudioModeAsync, useAudioPlayer } from 'expo-audio';
 import Fireworks from './Fireworks';
 import * as Haptics from 'expo-haptics';
-import { loadSavedProgress, saveSavedProgress, PROGRESS_SCHEMA_VERSION, type TSavedInLevelProgress, type TSavedProgress } from './src/persistence';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import useGame from './src/useGame';
+import { MAX_LEVEL, UNDO_LIMIT, LEVEL_TIME_SECONDS, TIMER_ENABLED } from './src/constants';
 import {
   ActivityIndicator,
   Animated,
   Easing,
-  Image,
   Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -19,48 +18,38 @@ import {
 import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Intro from './src/screens/Intro';
 import {
-  cloneTrail,
-  createTrail,
-  directionVector,
-  generateLevel,
-  inBounds,
-  isBlocked,
-  positionsEqual,
-  slide,
-  type TCell,
   type TDirection,
-  type TGameSnapshot,
   type TGameStatus,
-  type TLevel,
-  type TPosition,
 } from './gameLogic';
-
-type TScreen = 'intro' | 'game';
-
-const MAX_LEVEL = 50;
-
-const UNDO_LIMIT = 5;
-
-const LEVEL_TIME_SECONDS = 60;
-
-const TIMER_ENABLED = true;
-
-function isValidTrailForBoard(trail: boolean[][], rows: number, cols: number): boolean {
-  if (trail.length !== rows) return false;
-  return trail.every((row) => row.length === cols && row.every((cell) => typeof cell === 'boolean'));
-}
 
 function AppContent() {
   const insets = useSafeAreaInsets();
   const bottomInset = Platform.OS === 'ios' ? Math.max(insets.bottom, 16) + 16 : 32;
 
-  const [screen, setScreen] = useState<TScreen>('intro');
-  const [hasResumeProgress, setHasResumeProgress] = useState<boolean>(false);
+  const {
+    screen,
+    hasResumeProgress,
+    level,
+    levelNumber,
+    gameCompleted,
+    isProgressLoaded,
+    position,
+    status,
+    undosUsed,
+    secondsLeft,
+    trail,
+    history,
+    reset,
+    newLevel,
+    restartGame,
+    continueGame,
+    startNewGame,
+    undo,
+    attemptMove,
+  } = useGame();
 
-  const [levelNumber, setLevelNumber] = useState<number>(1);
-  const [levelSeeds, setLevelSeeds] = useState<number[]>(() => [Date.now() >>> 0]);
-  const [gameCompleted, setGameCompleted] = useState<boolean>(false);
-  const [isProgressLoaded, setIsProgressLoaded] = useState<boolean>(false);
+  const { grid, goal } = level;
+
   const [showFireworks, setShowFireworks] = useState<boolean>(false);
   const [showResetHintInline, setShowResetHintInline] = useState<boolean>(false);
   const prevGameCompletedRef = useRef<boolean>(false);
@@ -221,208 +210,8 @@ function AppContent() {
     void setAudioModeAsync({ playsInSilentMode: true });
   }, []);
 
-  useEffect(() => {
-    let cancelled = false;
 
-    const loadProgress = async () => {
-      const saved = await loadSavedProgress();
-      if (!saved) {
-        if (!cancelled) setIsProgressLoaded(true);
-        return;
-      }
-
-      if (cancelled) return;
-
-      setHasResumeProgress(
-        saved.screen === 'game' || saved.levelNumber > 1 || saved.gameCompleted || saved.inLevelProgress != null,
-      );
-      setLevelSeeds(saved.levelSeeds);
-      setLevelNumber(saved.levelNumber);
-      setGameCompleted(saved.gameCompleted);
-      setPendingInLevelRestore(saved.screen === 'game' ? saved.inLevelProgress ?? null : null);
-
-      if (!cancelled) setIsProgressLoaded(true);
-    };
-
-    void loadProgress();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const currentSeed = levelSeeds[levelNumber - 1] ?? (Date.now() >>> 0);
-  const level = useMemo(() => generateLevel(levelNumber, currentSeed), [levelNumber, currentSeed]);
-  const { grid, start, goal } = level;
-
-  const rows = grid.length;
-  const cols = grid[0]?.length ?? 0;
-
-  const [position, setPosition] = useState<TPosition>(start);
-  const [movesUsed, setMovesUsed] = useState<number>(0);
-  const [status, setStatus] = useState<TGameStatus>('playing');
-  const [undosUsed, setUndosUsed] = useState<number>(0);
-  const [secondsLeft, setSecondsLeft] = useState<number>(LEVEL_TIME_SECONDS);
-  const [trail, setTrail] = useState<boolean[][]>(() => {
-    const t = createTrail(rows, cols);
-    t[start.row][start.col] = true;
-    return t;
-  });
-  const [history, setHistory] = useState<TGameSnapshot[]>([]);
-  const [pendingInLevelRestore, setPendingInLevelRestore] = useState<TSavedInLevelProgress | null>(null);
-
-  const pushHistory = (snapshot: TGameSnapshot) => {
-    setHistory((prev) => [snapshot, ...prev].slice(0, 200));
-  };
-
-  const reset = () => {
-    setPosition(start);
-    setMovesUsed(0);
-    setStatus('playing');
-    setUndosUsed(0);
-    setSecondsLeft(LEVEL_TIME_SECONDS);
-    setHistory([]);
-    setTrail(() => {
-      const t = createTrail(rows, cols);
-      t[start.row][start.col] = true;
-      return t;
-    });
-  };
-
-  const newLevel = () => {
-    if (levelNumber >= MAX_LEVEL) return;
-    setLevelSeeds((prev) => {
-      if (prev[levelNumber]) return prev;
-      const next = prev.slice();
-      next[levelNumber] = ((Date.now() + levelNumber * 9973) >>> 0) as number;
-      return next;
-    });
-    setLevelNumber((n) => n + 1);
-  };
-
-  const restartGame = () => {
-    const seed = Date.now() >>> 0;
-    setGameCompleted(false);
-    setShowFireworks(false);
-    setLevelSeeds([seed]);
-    setLevelNumber(1);
-    setPendingInLevelRestore(null);
-    setHasResumeProgress(true);
-  };
-
-  const continueGame = () => {
-    setScreen('game');
-  };
-
-  const startNewGame = () => {
-    restartGame();
-    setScreen('game');
-  };
-
-  useEffect(() => {
-    if (pendingInLevelRestore) {
-      const restoredPosition = pendingInLevelRestore.position;
-      const hasValidPosition = inBounds(grid, restoredPosition) && !isBlocked(grid, restoredPosition);
-      const hasValidTrail = isValidTrailForBoard(pendingInLevelRestore.trail, rows, cols);
-      const hasStartMarked = pendingInLevelRestore.trail[start.row]?.[start.col] === true;
-
-      if (hasValidPosition && hasValidTrail && hasStartMarked) {
-        setPosition(restoredPosition);
-        setMovesUsed(Math.max(0, pendingInLevelRestore.movesUsed));
-        setStatus(pendingInLevelRestore.status);
-        setUndosUsed(Math.min(UNDO_LIMIT, Math.max(0, pendingInLevelRestore.undosUsed)));
-        setSecondsLeft(Math.min(LEVEL_TIME_SECONDS, Math.max(0, pendingInLevelRestore.secondsLeft)));
-        setHistory([]);
-        setTrail(cloneTrail(pendingInLevelRestore.trail));
-        setPendingInLevelRestore(null);
-        return;
-      }
-
-      setPendingInLevelRestore(null);
-    }
-
-    setPosition(start);
-    setMovesUsed(0);
-    setStatus('playing');
-    setUndosUsed(0);
-    setSecondsLeft(LEVEL_TIME_SECONDS);
-    setHistory([]);
-    setTrail(() => {
-      const t = createTrail(rows, cols);
-      t[start.row][start.col] = true;
-      return t;
-    });
-  }, [pendingInLevelRestore, levelNumber, rows, cols, start.row, start.col, grid]);
-
-  useEffect(() => {
-    if (!isProgressLoaded) return;
-    if (pendingInLevelRestore) return;
-    if (screen === 'intro' && hasResumeProgress) return;
-
-    const saveProgress = async () => {
-      const payload: TSavedProgress = {
-        schemaVersion: PROGRESS_SCHEMA_VERSION,
-        screen,
-        levelNumber,
-        levelSeeds,
-        gameCompleted,
-        inLevelProgress:
-          screen === 'game'
-            ? {
-                position,
-                movesUsed,
-                status,
-                undosUsed,
-                secondsLeft,
-                trail,
-              }
-            : null,
-      };
-
-      try {
-        await saveSavedProgress(payload);
-      } catch {
-        // ignore storage write errors
-      }
-    };
-
-    void saveProgress();
-  }, [
-    isProgressLoaded,
-    pendingInLevelRestore,
-    screen,
-    levelNumber,
-    levelSeeds,
-    gameCompleted,
-    position,
-    movesUsed,
-    status,
-    undosUsed,
-    secondsLeft,
-    trail,
-    hasResumeProgress,
-  ]);
-
-  useEffect(() => {
-    if (!TIMER_ENABLED) return;
-    if (gameCompleted) return;
-    if (status !== 'playing') return;
-    if (secondsLeft <= 0) return;
-
-    const id = setInterval(() => {
-      setSecondsLeft((s) => {
-        if (s <= 1) {
-          setStatus('lost');
-          return 0;
-        }
-        return s - 1;
-      });
-    }, 1000);
-
-    return () => {
-      clearInterval(id);
-    };
-  }, [status, secondsLeft, gameCompleted]);
+  
 
   useEffect(() => {
     if (!TIMER_ENABLED) return;
@@ -512,59 +301,17 @@ function AppContent() {
     };
   }, [status, gameCompleted]);
 
-  const undo = () => {
-    if (undosUsed >= UNDO_LIMIT) return;
-    setHistory((prev) => {
-      const [latest, ...rest] = prev;
-      if (!latest) return prev;
-      setPosition(latest.position);
-      setMovesUsed(latest.movesUsed);
-      setStatus(latest.status);
-      setTrail(latest.trail);
-      setUndosUsed((u) => u + 1);
-      return rest;
-    });
-  };
-
-  const attemptMove = (direction: TDirection) => {
-    if (status !== 'playing') return;
-    if (TIMER_ENABLED && secondsLeft <= 0) return;
-
-    const { dr, dc } = directionVector(direction);
-
-    let cur: TPosition = position;
-    let next: TPosition = { row: cur.row + dr, col: cur.col + dc };
-    if (isBlocked(grid, next)) {
+  const handleAttemptMove = (direction: TDirection) => {
+    const result = attemptMove(direction);
+    if (!result) return;
+    if (result.blocked) {
       shakeBoard();
       return;
     }
-
-    pushHistory({ position, movesUsed, status, trail: cloneTrail(trail) });
-
-    const nextTrail = cloneTrail(trail);
-
-    while (!isBlocked(grid, next)) {
-      cur = next;
-      nextTrail[cur.row][cur.col] = true;
-      next = { row: cur.row + dr, col: cur.col + dc };
-    }
-
-    const newMovesUsed = movesUsed + 1;
-    const didWin = positionsEqual(cur, goal);
-
-    setPosition(cur);
-    setTrail(nextTrail);
-    setMovesUsed(newMovesUsed);
-
-    if (didWin) {
+    if (result.didWin) {
       pulsePlayer('win');
-      setStatus('won');
-      if (levelNumber >= MAX_LEVEL) {
-        setGameCompleted(true);
-      }
       return;
     }
-
     pulsePlayer('move');
   };
 
@@ -702,7 +449,7 @@ function AppContent() {
           <View style={styles.dpadRow}>
             <View style={styles.dpadSpacer} />
             <Pressable
-              onPress={() => attemptMove('up')}
+              onPress={() => handleAttemptMove('up')}
               disabled={status !== 'playing'}
               style={({ pressed }) => [
                 styles.dpadButton,
@@ -716,7 +463,7 @@ function AppContent() {
           </View>
           <View style={styles.dpadRow}>
             <Pressable
-              onPress={() => attemptMove('left')}
+              onPress={() => handleAttemptMove('left')}
               disabled={status !== 'playing'}
               style={({ pressed }) => [
                 styles.dpadButton,
@@ -728,7 +475,7 @@ function AppContent() {
             </Pressable>
             <View style={styles.dpadSpacer} />
             <Pressable
-              onPress={() => attemptMove('right')}
+              onPress={() => handleAttemptMove('right')}
               disabled={status !== 'playing'}
               style={({ pressed }) => [
                 styles.dpadButton,
@@ -742,7 +489,7 @@ function AppContent() {
           <View style={styles.dpadRow}>
             <View style={styles.dpadSpacer} />
             <Pressable
-              onPress={() => attemptMove('down')}
+              onPress={() => handleAttemptMove('down')}
               disabled={status !== 'playing'}
               style={({ pressed }) => [
                 styles.dpadButton,
