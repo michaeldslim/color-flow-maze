@@ -2,7 +2,7 @@ import { StatusBar } from 'expo-status-bar';
 import { setAudioModeAsync, useAudioPlayer } from 'expo-audio';
 import Fireworks from './Fireworks';
 import * as Haptics from 'expo-haptics';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { loadSavedProgress, saveSavedProgress, PROGRESS_SCHEMA_VERSION, type TSavedInLevelProgress, type TSavedProgress } from './src/persistence';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -37,24 +37,6 @@ import {
 
 type TScreen = 'intro' | 'game';
 
-type TSavedInLevelProgress = {
-  position: TPosition;
-  movesUsed: number;
-  status: TGameStatus;
-  undosUsed: number;
-  secondsLeft: number;
-  trail: boolean[][];
-};
-
-type TSavedProgress = {
-  schemaVersion: number;
-  screen: TScreen;
-  levelNumber: number;
-  levelSeeds: number[];
-  gameCompleted: boolean;
-  inLevelProgress?: TSavedInLevelProgress | null;
-};
-
 const MAX_LEVEL = 50;
 
 const UNDO_LIMIT = 5;
@@ -63,66 +45,9 @@ const LEVEL_TIME_SECONDS = 60;
 
 const TIMER_ENABLED = true;
 
-const PROGRESS_STORAGE_KEY = 'color-flow-maze:progress:v1';
-
-const PROGRESS_SCHEMA_VERSION = 1;
-
-function isValidSavedInLevelProgress(value: unknown): value is TSavedInLevelProgress {
-  if (!value || typeof value !== 'object') return false;
-
-  const candidate = value as Partial<TSavedInLevelProgress>;
-  const pos = candidate.position as Partial<TPosition> | undefined;
-
-  if (!pos || typeof pos.row !== 'number' || !Number.isInteger(pos.row)) return false;
-  if (typeof pos.col !== 'number' || !Number.isInteger(pos.col)) return false;
-  if (typeof candidate.movesUsed !== 'number' || !Number.isInteger(candidate.movesUsed)) return false;
-  if (
-    candidate.status !== 'playing' &&
-    candidate.status !== 'won' &&
-    candidate.status !== 'lost'
-  ) {
-    return false;
-  }
-  if (typeof candidate.undosUsed !== 'number' || !Number.isInteger(candidate.undosUsed)) return false;
-  if (typeof candidate.secondsLeft !== 'number' || !Number.isInteger(candidate.secondsLeft)) return false;
-  if (!Array.isArray(candidate.trail)) return false;
-  if (
-    candidate.trail.some(
-      (row) => !Array.isArray(row) || row.some((cell) => typeof cell !== 'boolean'),
-    )
-  ) {
-    return false;
-  }
-
-  return true;
-}
-
 function isValidTrailForBoard(trail: boolean[][], rows: number, cols: number): boolean {
   if (trail.length !== rows) return false;
   return trail.every((row) => row.length === cols && row.every((cell) => typeof cell === 'boolean'));
-}
-
-function isValidSavedProgress(value: unknown): value is TSavedProgress {
-  if (!value || typeof value !== 'object') return false;
-
-  const candidate = value as Partial<TSavedProgress>;
-
-  if (candidate.schemaVersion !== PROGRESS_SCHEMA_VERSION) return false;
-  if (candidate.screen !== 'intro' && candidate.screen !== 'game') return false;
-  if (typeof candidate.levelNumber !== 'number' || !Number.isInteger(candidate.levelNumber)) return false;
-  if (candidate.levelNumber < 1 || candidate.levelNumber > MAX_LEVEL) return false;
-  if (!Array.isArray(candidate.levelSeeds) || candidate.levelSeeds.length < candidate.levelNumber) return false;
-  if (candidate.levelSeeds.some((seed) => typeof seed !== 'number' || !Number.isInteger(seed))) return false;
-  if (typeof candidate.gameCompleted !== 'boolean') return false;
-  if (
-    candidate.inLevelProgress !== undefined &&
-    candidate.inLevelProgress !== null &&
-    !isValidSavedInLevelProgress(candidate.inLevelProgress)
-  ) {
-    return false;
-  }
-
-  return true;
 }
 
 function AppContent() {
@@ -300,32 +225,23 @@ function AppContent() {
     let cancelled = false;
 
     const loadProgress = async () => {
-      try {
-        const raw = await AsyncStorage.getItem(PROGRESS_STORAGE_KEY);
-        if (!raw) return;
-
-        const parsed: unknown = JSON.parse(raw);
-        if (!isValidSavedProgress(parsed)) return;
-
-        if (cancelled) return;
-
-        setHasResumeProgress(
-          parsed.screen === 'game' ||
-            parsed.levelNumber > 1 ||
-            parsed.gameCompleted ||
-            parsed.inLevelProgress != null,
-        );
-        setLevelSeeds(parsed.levelSeeds);
-        setLevelNumber(parsed.levelNumber);
-        setGameCompleted(parsed.gameCompleted);
-        setPendingInLevelRestore(parsed.screen === 'game' ? parsed.inLevelProgress ?? null : null);
-      } catch {
-        // ignore invalid/corrupt save data
-      } finally {
-        if (!cancelled) {
-          setIsProgressLoaded(true);
-        }
+      const saved = await loadSavedProgress();
+      if (!saved) {
+        if (!cancelled) setIsProgressLoaded(true);
+        return;
       }
+
+      if (cancelled) return;
+
+      setHasResumeProgress(
+        saved.screen === 'game' || saved.levelNumber > 1 || saved.gameCompleted || saved.inLevelProgress != null,
+      );
+      setLevelSeeds(saved.levelSeeds);
+      setLevelNumber(saved.levelNumber);
+      setGameCompleted(saved.gameCompleted);
+      setPendingInLevelRestore(saved.screen === 'game' ? saved.inLevelProgress ?? null : null);
+
+      if (!cancelled) setIsProgressLoaded(true);
     };
 
     void loadProgress();
@@ -464,7 +380,7 @@ function AppContent() {
       };
 
       try {
-        await AsyncStorage.setItem(PROGRESS_STORAGE_KEY, JSON.stringify(payload));
+        await saveSavedProgress(payload);
       } catch {
         // ignore storage write errors
       }
