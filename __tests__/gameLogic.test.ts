@@ -121,15 +121,16 @@ describe('slide', () => {
   const { grid } = parseLevel(RAW);
 
   it('slides right until wall', () => {
-    // Semi-slippery logic: stop at the first stoppable cell (here (1,2))
+    // From (1,1) going right hits the wall at col 5, so stops at col 4
     const result = slide(grid, { row: 1, col: 1 }, 'right');
-    expect(result).toEqual({ row: 1, col: 2 });
+    expect(result).toEqual({ row: 1, col: 4 });
   });
 
   it('slides down until wall', () => {
-    // Semi-slippery logic: stop at the first stoppable cell (here (2,1))
+    // From (1,1) going down: row 2 col 1 is empty, row 3 col 1 is empty, row 4 col 1 is empty,
+    // row 5 is the border wall, so stops at (4,1)
     const result = slide(grid, { row: 1, col: 1 }, 'down');
-    expect(result).toEqual({ row: 2, col: 1 });
+    expect(result).toEqual({ row: 4, col: 1 });
   });
 
   it('stays in place when immediately blocked', () => {
@@ -139,9 +140,9 @@ describe('slide', () => {
   });
 
   it('slides up until wall', () => {
-    // Semi-slippery logic: stop at the first stoppable cell encountered (here (3,4))
+    // From (4,4) going up: (3,4) empty, (2,4) empty, (1,4) empty, (0,4) wall → stops at (1,4)
     const result = slide(grid, { row: 4, col: 4 }, 'up');
-    expect(result).toEqual({ row: 3, col: 4 });
+    expect(result).toEqual({ row: 1, col: 4 });
   });
 });
 

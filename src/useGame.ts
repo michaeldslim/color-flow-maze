@@ -5,6 +5,7 @@ import {
   generateLevel,
   inBounds,
   isBlocked,
+  slide,
   positionsEqual,
   directionVector,
   type TDirection,
@@ -238,26 +239,24 @@ export function useGame() {
 
     const { dr, dc } = directionVector(direction as TDirection);
 
-    let cur: TPosition = position;
-    let next: TPosition = { row: cur.row + dr, col: cur.col + dc };
-    if (isBlocked(grid, next)) {
-      return { blocked: true };
-    }
+    // compute sliding destination using shared slide() logic (respects ice/stoppable cells)
+    const dest = slide(grid, position, direction as TDirection);
+    if (positionsEqual(dest, position)) return { blocked: true };
 
     pushHistory({ position, movesUsed, status, trail: cloneTrail(trail) });
 
     const nextTrail = cloneTrail(trail);
-
-    while (!isBlocked(grid, next)) {
-      cur = next;
-      nextTrail[cur.row][cur.col] = true;
-      next = { row: cur.row + dr, col: cur.col + dc };
+    // mark all intermediate cells between position (exclusive) and dest (inclusive)
+    let curMark = { ...position };
+    while (!positionsEqual(curMark, dest)) {
+      curMark = { row: curMark.row + dr, col: curMark.col + dc };
+      nextTrail[curMark.row][curMark.col] = true;
     }
 
     const newMovesUsed = movesUsed + 1;
-    const didWin = positionsEqual(cur, goal);
+    const didWin = positionsEqual(dest, goal);
 
-    setPosition(cur);
+    setPosition(dest);
     setTrail(nextTrail);
     setMovesUsed(newMovesUsed);
 
@@ -266,7 +265,7 @@ export function useGame() {
       if (levelNumber >= MAX_LEVEL) setGameCompleted(true);
     }
 
-    return { blocked: false, didWin, newPosition: cur };
+    return { blocked: false, didWin, newPosition: dest };
   };
 
   return {

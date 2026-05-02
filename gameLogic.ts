@@ -125,8 +125,6 @@ export function slide(grid: TCell[][], from: TPosition, direction: TDirection): 
 
   while (!isBlocked(grid, next)) {
     cur = next;
-    // stop early if this cell is a stoppable cell (and not ice)
-    if (isStoppableCell(grid, cur)) return cur;
     next = { row: cur.row + dr, col: cur.col + dc };
   }
 
@@ -135,8 +133,7 @@ export function slide(grid: TCell[][], from: TPosition, direction: TDirection): 
 
 export function isStoppableCell(grid: TCell[][], pos: TPosition): boolean {
   if (!inBounds(grid, pos)) return false;
-  // ice tiles are not stoppable (semi-slippery)
-  if (grid[pos.row]?.[pos.col] === 'wall' || grid[pos.row]?.[pos.col] === 'ice') return false;
+  if (grid[pos.row]?.[pos.col] === 'wall') return false;
   const candidates: TPosition[] = [
     { row: pos.row - 1, col: pos.col },
     { row: pos.row + 1, col: pos.col },
