@@ -319,7 +319,7 @@ function AppContent() {
     gameCompleted
       ? 'You beat the game!'
       : status === 'won'
-        ? 'You won!'
+        ? 'Stage Clear!'
       : status === 'lost'
         ? 'Time up'
         : 'Use the D-pad';
