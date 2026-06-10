@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { ScrollView, View, Text, Pressable, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { ScrollView, View, Text, Pressable, StyleSheet, Platform } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { StatusBar as RNStatusBar } from 'react-native';
 
 type Props = {
   hasResumeProgress: boolean;
@@ -12,9 +13,11 @@ type Props = {
 };
 
 export default function Intro({ hasResumeProgress, levelNumber, continueGame, startNewGame, bottomInset }: Props) {
+  const insets = useSafeAreaInsets();
+  const topPadding = Math.max(insets.top, Platform.OS === 'android' ? (RNStatusBar.currentHeight ?? 0) : 0);
   const [lang, setLang] = useState<'ko' | 'en'>('ko');
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { paddingTop: topPadding }]}>
       <View style={styles.introHeader}>
         <Text style={styles.title}>Color Flow Maze</Text>
         <Text style={styles.subtitle}>색깔 길찾기</Text>
@@ -102,7 +105,7 @@ export default function Intro({ hasResumeProgress, levelNumber, continueGame, st
           <Text style={styles.buttonText}>{lang === 'en' ? 'New Game' : '새 게임'}</Text>
         </Pressable>
 
-        <StatusBar style="auto" />
+        <StatusBar style="light" />
       </ScrollView>
     </SafeAreaView>
   );

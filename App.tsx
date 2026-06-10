@@ -14,6 +14,7 @@ import {
   StyleSheet,
   Text,
   View,
+  StatusBar as RNStatusBar,
 } from 'react-native';
 import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Intro from './src/screens/Intro';
@@ -25,6 +26,7 @@ import {
 function AppContent() {
   const insets = useSafeAreaInsets();
   const bottomInset = Platform.OS === 'ios' ? Math.max(insets.bottom, 16) + 16 : 32;
+  const topPadding = Math.max(insets.top, Platform.OS === 'android' ? (RNStatusBar.currentHeight ?? 0) : 0);
 
   const {
     screen,
@@ -329,7 +331,7 @@ function AppContent() {
 
   if (!isProgressLoaded) {
     return (
-      <SafeAreaView style={styles.safeArea}>
+      <SafeAreaView style={[styles.safeArea, { paddingTop: topPadding }] }>
         <View style={[styles.container, styles.loadingContainer]}>
           <ActivityIndicator size="large" color="#ffffff" />
           <Text style={styles.subtitle}>Loading progress...</Text>
@@ -351,7 +353,7 @@ function AppContent() {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { paddingTop: topPadding }] }>
       <View style={[styles.container, { paddingBottom: 12 + bottomInset }]}>
         <Text style={styles.title}>Color Flow Maze</Text>
         <Text style={styles.subtitle}>{headerText}</Text>
@@ -556,7 +558,7 @@ function AppContent() {
           </Pressable>
         </View>
 
-        <StatusBar style="auto" />
+        <StatusBar style="light" />
         <Fireworks visible={showFireworks} />
       </View>
     </SafeAreaView>
