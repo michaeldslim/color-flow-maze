@@ -27,6 +27,8 @@ function AppContent() {
   const insets = useSafeAreaInsets();
   const bottomInset = Platform.OS === 'ios' ? Math.max(insets.bottom, 16) + 16 : 32;
   const topPadding = Math.max(insets.top, Platform.OS === 'android' ? (RNStatusBar.currentHeight ?? 0) : 0);
+  const SHIFT_UP = 15; // move UI up by this many pixels
+  const appliedTopPadding = Math.max(topPadding - SHIFT_UP, 0);
 
   const {
     screen,
@@ -331,7 +333,7 @@ function AppContent() {
 
   if (!isProgressLoaded) {
     return (
-      <SafeAreaView style={[styles.safeArea, { paddingTop: topPadding }] }>
+      <SafeAreaView style={[styles.safeArea, { paddingTop: appliedTopPadding }] }>
         <View style={[styles.container, styles.loadingContainer]}>
           <ActivityIndicator size="large" color="#ffffff" />
           <Text style={styles.subtitle}>Loading progress...</Text>
@@ -353,7 +355,7 @@ function AppContent() {
   }
 
   return (
-    <SafeAreaView style={[styles.safeArea, { paddingTop: topPadding }] }>
+    <SafeAreaView style={[styles.safeArea, { paddingTop: appliedTopPadding }] }>
       <View style={[styles.container, { paddingBottom: 12 + bottomInset }]}>
         <Text style={styles.title}>Color Flow Maze</Text>
         <Text style={styles.subtitle}>{headerText}</Text>

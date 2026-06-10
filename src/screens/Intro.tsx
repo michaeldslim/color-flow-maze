@@ -15,9 +15,11 @@ type Props = {
 export default function Intro({ hasResumeProgress, levelNumber, continueGame, startNewGame, bottomInset }: Props) {
   const insets = useSafeAreaInsets();
   const topPadding = Math.max(insets.top, Platform.OS === 'android' ? (RNStatusBar.currentHeight ?? 0) : 0);
+  const SHIFT_UP = 15;
+  const appliedTopPadding = Math.max(topPadding - SHIFT_UP, 0);
   const [lang, setLang] = useState<'ko' | 'en'>('ko');
   return (
-    <SafeAreaView style={[styles.safeArea, { paddingTop: topPadding }]}>
+    <SafeAreaView style={[styles.safeArea, { paddingTop: appliedTopPadding }]}>
       <View style={styles.introHeader}>
         <Text style={styles.title}>Color Flow Maze</Text>
         <Text style={styles.subtitle}>색깔 길찾기</Text>
