@@ -3,6 +3,7 @@ import { StatusBar } from 'expo-status-bar';
 import { ScrollView, View, Text, Pressable, StyleSheet, Platform } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar as RNStatusBar } from 'react-native';
+import { gameInstructions } from '../gameInstructions';
 
 type Props = {
   hasResumeProgress: boolean;
@@ -18,6 +19,8 @@ export default function Intro({ hasResumeProgress, levelNumber, continueGame, st
   const SHIFT_UP = 15;
   const appliedTopPadding = Math.max(topPadding - SHIFT_UP, 0);
   const [lang, setLang] = useState<'ko' | 'en'>('ko');
+  const instructions = gameInstructions[lang];
+
   return (
     <SafeAreaView style={[styles.safeArea, { paddingTop: appliedTopPadding }]}>
       <View style={styles.introHeader}>
@@ -58,25 +61,10 @@ export default function Intro({ hasResumeProgress, levelNumber, continueGame, st
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.introCard}>
-          {lang === 'ko' ? (
-            <>
-              <Text style={styles.introSectionTitle}>플레이 방법</Text>
-              <Text style={styles.introText}>- 방향 버튼을 누르세요.</Text>
-              <Text style={styles.introText}>- 벽에 부딪힐 때까지 미끄러집니다.</Text>
-              <Text style={styles.introText}>- 오렌지색 칸에 “멈춰야” 승리합니다.</Text>
-              <Text style={styles.introText}>- 50레벨을 클리어하면 게임을 완료합니다.</Text>
-              <Text style={styles.introText}>- Reset 버튼을 길게 누르면 게임이 처음부터 다시 시작됩니다.</Text>
-            </>
-          ) : (
-            <>
-              <Text style={styles.introSectionTitle}>How to play</Text>
-              <Text style={styles.introText}>- Press the arrow buttons.</Text>
-              <Text style={styles.introText}>- You slide until you hit a wall.</Text>
-              <Text style={styles.introText}>- You win only if you STOP on the orange tile.</Text>
-              <Text style={styles.introText}>- Beat Level 50 to finish the game.</Text>
-              <Text style={styles.introText}>- Long-press Reset to restart the whole game.</Text>
-            </>
-          )}
+          <Text style={styles.introSectionTitle}>{instructions.title}</Text>
+          {instructions.items.map((item, index) => (
+              <Text key={index} style={styles.introText}>{item}</Text>
+          ))}
         </View>
 
         <Pressable
