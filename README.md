@@ -32,7 +32,7 @@ A sliding-puzzle mobile game built with React Native and Expo. Navigate a player
 - **Procedural level generation** — seeded RNG ensures reproducible layouts per level
 - **BFS solvability check** — every generated level is guaranteed to be beatable
 - **Trail painting** — your path is visually marked as you slide
-- **Undo system** — up to 3 undos per level
+- **Undo system** — up to 5 undos per level
 - **Haptic feedback** on win (iOS / Android)
 - **Sound effects** — win chime and full game completion fanfare
 - **Board shake animation** when movement is blocked
