@@ -1,18 +1,35 @@
 import React from 'react';
 import { Pressable, Text, View } from 'react-native';
+import type { TDirection } from '../../gameLogic';
+import { gameStyles } from '../theme';
 
 type Props = {
-  attemptMove: (dir: 'up' | 'down' | 'left' | 'right') => void;
+  attemptMove: (dir: TDirection) => void;
   status: string;
   undo: () => void;
   undoDisabled: boolean;
   undoCountRemaining: number;
+  showUndo: boolean;
   handleResetPress: () => void;
   handleResetLongPress: () => void;
   showResetHintInline: boolean;
   onNextLevel: () => void;
   nextDisabled: boolean;
-  styles: any;
+  nextLabel: string;
+};
+
+const DIRECTION_LABELS: Record<TDirection, string> = {
+  up: 'Move up',
+  down: 'Move down',
+  left: 'Move left',
+  right: 'Move right',
+};
+
+const DIRECTION_ARROWS: Record<TDirection, string> = {
+  up: '▲',
+  down: '▼',
+  left: '◀',
+  right: '▶',
 };
 
 const Controls: React.FC<Props> = ({
@@ -21,116 +38,106 @@ const Controls: React.FC<Props> = ({
   undo,
   undoDisabled,
   undoCountRemaining,
+  showUndo,
   handleResetPress,
   handleResetLongPress,
   showResetHintInline,
   onNextLevel,
   nextDisabled,
-  styles,
+  nextLabel,
 }) => {
+  const renderDpadButton = (direction: TDirection) => (
+    <Pressable
+      onPress={() => attemptMove(direction)}
+      disabled={status !== 'playing'}
+      accessibilityRole="button"
+      accessibilityLabel={DIRECTION_LABELS[direction]}
+      style={({ pressed }) => [
+        gameStyles.dpadButton,
+        pressed && gameStyles.buttonPressed,
+        status !== 'playing' && gameStyles.buttonDisabled,
+      ]}
+    >
+      <Text style={gameStyles.dpadArrow}>{DIRECTION_ARROWS[direction]}</Text>
+    </Pressable>
+  );
+
   return (
     <>
-      <View style={styles.dpad}>
-        <View style={styles.dpadRow}>
-          <View style={styles.dpadSpacer} />
-          <Pressable
-            onPress={() => attemptMove('up')}
-            disabled={status !== 'playing'}
-            style={({ pressed }) => [
-              styles.dpadButton,
-              pressed && styles.buttonPressed,
-              status !== 'playing' && styles.buttonDisabled,
-            ]}
-          >
-            <Text style={styles.buttonText}>Up</Text>
-          </Pressable>
-          <View style={styles.dpadSpacer} />
+      <View style={gameStyles.dpad}>
+        <View style={gameStyles.dpadRow}>
+          <View style={gameStyles.dpadSpacer} />
+          {renderDpadButton('up')}
+          <View style={gameStyles.dpadSpacer} />
         </View>
-        <View style={styles.dpadRow}>
-          <Pressable
-            onPress={() => attemptMove('left')}
-            disabled={status !== 'playing'}
-            style={({ pressed }) => [
-              styles.dpadButton,
-              pressed && styles.buttonPressed,
-              status !== 'playing' && styles.buttonDisabled,
-            ]}
-          >
-            <Text style={styles.buttonText}>Left</Text>
-          </Pressable>
-          <View style={styles.dpadSpacer} />
-          <Pressable
-            onPress={() => attemptMove('right')}
-            disabled={status !== 'playing'}
-            style={({ pressed }) => [
-              styles.dpadButton,
-              pressed && styles.buttonPressed,
-              status !== 'playing' && styles.buttonDisabled,
-            ]}
-          >
-            <Text style={styles.buttonText}>Right</Text>
-          </Pressable>
+        <View style={gameStyles.dpadRow}>
+          {renderDpadButton('left')}
+          <View style={gameStyles.dpadSpacer} />
+          {renderDpadButton('right')}
         </View>
-        <View style={styles.dpadRow}>
-          <View style={styles.dpadSpacer} />
-          <Pressable
-            onPress={() => attemptMove('down')}
-            disabled={status !== 'playing'}
-            style={({ pressed }) => [
-              styles.dpadButton,
-              pressed && styles.buttonPressed,
-              status !== 'playing' && styles.buttonDisabled,
-            ]}
-          >
-            <Text style={styles.buttonText}>Down</Text>
-          </Pressable>
-          <View style={styles.dpadSpacer} />
+        <View style={gameStyles.dpadRow}>
+          <View style={gameStyles.dpadSpacer} />
+          {renderDpadButton('down')}
+          <View style={gameStyles.dpadSpacer} />
         </View>
       </View>
 
-      <View style={styles.controlsRow}>
-        <Pressable
-          onPress={undo}
-          disabled={undoDisabled}
-          style={({ pressed }) => [
-            styles.button,
-            styles.controlsButtonSize,
-            styles.controlsButton,
-            undoDisabled && styles.buttonDisabled,
-            pressed && !undoDisabled && styles.buttonPressed,
-          ]}
-        >
-          <Text style={styles.buttonText}>Undo ({undoCountRemaining})</Text>
-        </Pressable>
+      <View style={gameStyles.controlsRow}>
+        {showUndo ? (
+          <Pressable
+            onPress={undo}
+            disabled={undoDisabled}
+            accessibilityRole="button"
+            accessibilityLabel={`Undo, ${undoCountRemaining} remaining`}
+            style={({ pressed }) => [
+              gameStyles.button,
+              gameStyles.controlsButtonSize,
+              gameStyles.controlsButton,
+              undoDisabled && gameStyles.buttonDisabled,
+              pressed && !undoDisabled && gameStyles.buttonPressed,
+            ]}
+          >
+            <Text style={gameStyles.buttonText}>Undo ({undoCountRemaining})</Text>
+          </Pressable>
+        ) : null}
 
-        <View style={styles.resetButtonWrap}>
+        <View style={gameStyles.resetButtonWrap}>
           {showResetHintInline ? (
-            <View style={styles.resetHintBubble}>
-              <Text style={styles.resetHintText}>Long press Reset to restart</Text>
+            <View style={gameStyles.resetHintBubble}>
+              <Text style={gameStyles.resetHintText}>Long press Reset to restart</Text>
             </View>
           ) : null}
           <Pressable
             onPress={handleResetPress}
             onLongPress={handleResetLongPress}
             delayLongPress={500}
-            style={({ pressed }) => [styles.button, styles.controlsButtonSize, styles.controlsButton, pressed && styles.buttonPressed]}
+            accessibilityRole="button"
+            accessibilityLabel="Reset level. Long press to restart entire game."
+            style={({ pressed }) => [
+              gameStyles.button,
+              gameStyles.controlsButtonSize,
+              gameStyles.controlsButton,
+              pressed && gameStyles.buttonPressed,
+            ]}
           >
-            <Text style={styles.buttonText}>Reset ⏱</Text>
+            <Text style={gameStyles.buttonText}>Reset</Text>
           </Pressable>
         </View>
 
         <Pressable
           onPress={onNextLevel}
           disabled={nextDisabled}
+          accessibilityRole="button"
+          accessibilityLabel={nextLabel}
           style={({ pressed }) => [
-            styles.button,
-            styles.controlsButtonSize,
-            styles.controlsButton,
-            nextDisabled && styles.buttonDisabled,
-            pressed && !nextDisabled && styles.buttonPressed,
+            gameStyles.button,
+            gameStyles.controlsButtonSize,
+            gameStyles.controlsButton,
+            nextDisabled && gameStyles.buttonDisabled,
+            pressed && !nextDisabled && gameStyles.buttonPressed,
           ]}
         >
-          <Text style={styles.buttonText}>{nextDisabled ? 'Next Level' : 'Next Level'}</Text>
+          <Text style={gameStyles.buttonText}>{nextLabel}</Text>
         </Pressable>
       </View>
     </>

@@ -18,6 +18,7 @@ import { loadSavedProgress, saveSavedProgress, type TSavedInLevelProgress, type 
 import { MAX_LEVEL, UNDO_LIMIT, LEVEL_TIME_SECONDS, TIMER_ENABLED } from './constants';
 
 export type TScreen = 'intro' | 'game';
+export type TLossReason = 'time' | 'moves' | null;
 
 export function useGame() {
   const [screen, setScreen] = useState<TScreen>('intro');
@@ -46,6 +47,7 @@ export function useGame() {
     return t;
   });
   const [history, setHistory] = useState<TGameSnapshot[]>([]);
+  const [lossReason, setLossReason] = useState<TLossReason>(null);
   const [pendingInLevelRestore, setPendingInLevelRestore] = useState<TSavedInLevelProgress | null>(null);
 
   useEffect(() => {
@@ -131,6 +133,7 @@ export function useGame() {
       setSecondsLeft((s) => {
         if (s <= 1) {
           setStatus('lost');
+          setLossReason('time');
           return 0;
         }
         return s - 1;
@@ -165,6 +168,7 @@ export function useGame() {
     setPosition(start);
     setMovesUsed(0);
     setStatus('playing');
+    setLossReason(null);
     setUndosUsed(0);
     setSecondsLeft(LEVEL_TIME_SECONDS);
     setHistory([]);
@@ -183,6 +187,7 @@ export function useGame() {
     setPosition(start);
     setMovesUsed(0);
     setStatus('playing');
+    setLossReason(null);
     setUndosUsed(0);
     setSecondsLeft(LEVEL_TIME_SECONDS);
     setHistory([]);
@@ -263,6 +268,9 @@ export function useGame() {
     if (didWin) {
       setStatus('won');
       if (levelNumber >= MAX_LEVEL) setGameCompleted(true);
+    } else if (newMovesUsed >= level.moveLimit) {
+      setStatus('lost');
+      setLossReason('moves');
     }
 
     return { blocked: false, didWin, newPosition: dest };
@@ -293,6 +301,7 @@ export function useGame() {
     trail,
     setTrail,
     history,
+    lossReason,
     pushHistory,
     reset,
     newLevel,
