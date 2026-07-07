@@ -12,7 +12,7 @@ alwaysApply: false
 |------|--------|-------|
 | Levels | 50 procedural, seeded | `generateLevel()` in `gameLogic.ts` |
 | Grid | 8×8 → 12×12 | Grows every 2 levels from L2 |
-| Move limit | **Enforced** | Loss reason `moves`; shown in HUD |
+| Move limit | **Optional setting** (default off) | Toggle on intro; timer remains default loss condition |
 | Timer | Enabled (`TIMER_ENABLED=true`) | Loss reason `time`; hidden in HUD when disabled |
 | Undo | 5 per level (`UNDO_LIMIT`) | `showUndo` prop ready for Round 2 |
 | Ice cells | Generated + rendered | ❄ marker on tile; gameplay still inactive (Phase 3) |
@@ -32,6 +32,7 @@ alwaysApply: false
 
 ### P1.2 Game feedback ✅
 - [x] Distinct lose states: "Time up" vs "Out of moves" (`lossReason` in `useGame`)
+- [x] **Try Again** button enabled on loss (calls `reset()`)
 - [x] Level-transition overlay: `LevelTransition` badge on level change
 - [x] Win/lose haptics + light haptic on blocked slide
 - [x] Ice tile visual: ❄ marker on ice cells
@@ -49,6 +50,7 @@ alwaysApply: false
 ### P1.5 Polish ✅
 - [x] Level progress bar under HUD
 - [x] Sound toggle on intro (`src/settings.ts`, persisted via AsyncStorage)
+- [x] **Move limit toggle** on intro (default off; optional hard mode)
 - [x] `accessibilityLabel` on board cells and all buttons
 
 ### Phase 1 files added/changed
