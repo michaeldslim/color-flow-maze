@@ -14,6 +14,8 @@ type Props = {
   bottomInset: number;
   soundEnabled: boolean;
   onToggleSound: () => void;
+  moveLimitEnabled: boolean;
+  onToggleMoveLimit: () => void;
 };
 
 export default function Intro({
@@ -24,6 +26,8 @@ export default function Intro({
   bottomInset,
   soundEnabled,
   onToggleSound,
+  moveLimitEnabled,
+  onToggleMoveLimit,
 }: Props) {
   const insets = useSafeAreaInsets();
   const topPadding = Math.max(insets.top, Platform.OS === 'android' ? (RNStatusBar.currentHeight ?? 0) : 0);
@@ -112,6 +116,30 @@ export default function Intro({
               ]}
             >
               {soundEnabled ? instructions.soundOn : instructions.soundOff}
+            </Text>
+          </Pressable>
+        </View>
+
+        <View style={[introStyles.settingsRow, { marginTop: 8 }]}>
+          <Text style={introStyles.settingsLabel}>{instructions.moveLimitLabel}</Text>
+          <Pressable
+            onPress={onToggleMoveLimit}
+            accessibilityRole="switch"
+            accessibilityState={{ checked: moveLimitEnabled }}
+            accessibilityLabel={`${instructions.moveLimitLabel}, ${moveLimitEnabled ? instructions.moveLimitOn : instructions.moveLimitOff}`}
+            style={({ pressed }) => [
+              introStyles.settingsToggle,
+              moveLimitEnabled ? introStyles.settingsToggleOn : introStyles.settingsToggleOff,
+              pressed && introStyles.buttonPressed,
+            ]}
+          >
+            <Text
+              style={[
+                introStyles.settingsToggleText,
+                moveLimitEnabled && introStyles.settingsToggleTextOn,
+              ]}
+            >
+              {moveLimitEnabled ? instructions.moveLimitOn : instructions.moveLimitOff}
             </Text>
           </Pressable>
         </View>

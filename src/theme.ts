@@ -308,6 +308,13 @@ export const gameStyles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
   },
+  buttonPrimary: {
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
+  },
+  buttonPrimaryText: {
+    color: colors.accentText,
+  },
 });
 
 export const introStyles = StyleSheet.create({

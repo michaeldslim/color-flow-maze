@@ -9,6 +9,7 @@ type Props = {
   maxLevel: number;
   movesUsed: number;
   moveLimit: number;
+  moveLimitEnabled: boolean;
   timerEnabled: boolean;
   secondsLeft: number;
   isTimerWarning: boolean;
@@ -23,6 +24,7 @@ const HUD: React.FC<Props> = ({
   maxLevel,
   movesUsed,
   moveLimit,
+  moveLimitEnabled,
   timerEnabled,
   secondsLeft,
   isTimerWarning,
@@ -31,6 +33,27 @@ const HUD: React.FC<Props> = ({
 }) => {
   const movesRemaining = Math.max(0, moveLimit - movesUsed);
   const progress = Math.min(1, levelNumber / maxLevel);
+  const showTimerOnSecondRow = moveLimitEnabled && timerEnabled;
+
+  const timerText = (
+    <Animated.Text
+      accessibilityLabel={`${secondsLeft} seconds remaining`}
+      style={[
+        gameStyles.hudText,
+        isTimerWarning && gameStyles.hudTimeWarning,
+        isTimerCritical && gameStyles.hudTimeCritical,
+        isTimerWarning && {
+          transform: [
+            {
+              scale: timerPulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.08] }),
+            },
+          ],
+        },
+      ]}
+    >
+      Time: {secondsLeft}s
+    </Animated.Text>
+  );
 
   return (
     <>
@@ -42,34 +65,20 @@ const HUD: React.FC<Props> = ({
           <Text style={gameStyles.hudText} accessibilityLabel={`Level ${levelNumber} of ${maxLevel}`}>
             Level: {levelNumber}/{maxLevel}
           </Text>
-          <Text
-            style={gameStyles.hudText}
-            accessibilityLabel={`${movesRemaining} moves remaining out of ${moveLimit}`}
-          >
-            Moves: {movesRemaining}/{moveLimit}
-          </Text>
+          {moveLimitEnabled ? (
+            <Text
+              style={gameStyles.hudText}
+              accessibilityLabel={`${movesRemaining} moves remaining out of ${moveLimit}`}
+            >
+              Moves: {movesRemaining}/{moveLimit}
+            </Text>
+          ) : timerEnabled ? (
+            timerText
+          ) : null}
         </View>
 
-        {timerEnabled ? (
-          <View style={[gameStyles.hudRow, { marginTop: 6, justifyContent: 'flex-end' }]}>
-            <Animated.Text
-              accessibilityLabel={`${secondsLeft} seconds remaining`}
-              style={[
-                gameStyles.hudText,
-                isTimerWarning && gameStyles.hudTimeWarning,
-                isTimerCritical && gameStyles.hudTimeCritical,
-                isTimerWarning && {
-                  transform: [
-                    {
-                      scale: timerPulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.08] }),
-                    },
-                  ],
-                },
-              ]}
-            >
-              Time: {secondsLeft}s
-            </Animated.Text>
-          </View>
+        {showTimerOnSecondRow ? (
+          <View style={[gameStyles.hudRow, { marginTop: 6, justifyContent: 'flex-end' }]}>{timerText}</View>
         ) : null}
 
         <View

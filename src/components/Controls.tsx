@@ -16,6 +16,7 @@ type Props = {
   onNextLevel: () => void;
   nextDisabled: boolean;
   nextLabel: string;
+  nextHighlighted?: boolean;
 };
 
 const DIRECTION_LABELS: Record<TDirection, string> = {
@@ -45,6 +46,7 @@ const Controls: React.FC<Props> = ({
   onNextLevel,
   nextDisabled,
   nextLabel,
+  nextHighlighted = false,
 }) => {
   const renderDpadButton = (direction: TDirection) => (
     <Pressable
@@ -133,11 +135,14 @@ const Controls: React.FC<Props> = ({
             gameStyles.button,
             gameStyles.controlsButtonSize,
             gameStyles.controlsButton,
+            nextHighlighted && gameStyles.buttonPrimary,
             nextDisabled && gameStyles.buttonDisabled,
             pressed && !nextDisabled && gameStyles.buttonPressed,
           ]}
         >
-          <Text style={gameStyles.buttonText}>{nextLabel}</Text>
+          <Text style={[gameStyles.buttonText, nextHighlighted && gameStyles.buttonPrimaryText]}>
+            {nextLabel}
+          </Text>
         </Pressable>
       </View>
     </>

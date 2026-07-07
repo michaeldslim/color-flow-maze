@@ -20,7 +20,12 @@ import { MAX_LEVEL, UNDO_LIMIT, LEVEL_TIME_SECONDS, TIMER_ENABLED } from './cons
 export type TScreen = 'intro' | 'game';
 export type TLossReason = 'time' | 'moves' | null;
 
-export function useGame() {
+type UseGameOptions = {
+  moveLimitEnabled?: boolean;
+};
+
+export function useGame(options: UseGameOptions = {}) {
+  const moveLimitEnabled = options.moveLimitEnabled ?? false;
   const [screen, setScreen] = useState<TScreen>('intro');
   const [hasResumeProgress, setHasResumeProgress] = useState<boolean>(false);
 
@@ -232,6 +237,7 @@ export function useGame() {
       setPosition(latest.position);
       setMovesUsed(latest.movesUsed);
       setStatus(latest.status);
+      setLossReason(null);
       setTrail(latest.trail);
       setUndosUsed((u) => u + 1);
       return rest;
@@ -268,7 +274,7 @@ export function useGame() {
     if (didWin) {
       setStatus('won');
       if (levelNumber >= MAX_LEVEL) setGameCompleted(true);
-    } else if (newMovesUsed >= level.moveLimit) {
+    } else if (moveLimitEnabled && newMovesUsed >= level.moveLimit) {
       setStatus('lost');
       setLossReason('moves');
     }

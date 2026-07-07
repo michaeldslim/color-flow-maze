@@ -20,7 +20,7 @@ import Board from './src/components/Board';
 import HUD from './src/components/HUD';
 import Controls from './src/components/Controls';
 import LevelTransition from './src/components/LevelTransition';
-import { useSoundEnabled } from './src/settings';
+import { useSoundEnabled, useMoveLimitEnabled } from './src/settings';
 import { gameStyles } from './src/theme';
 import { type TDirection, type TGameStatus } from './gameLogic';
 
@@ -32,6 +32,7 @@ function AppContent() {
   const appliedTopPadding = Math.max(topPadding - SHIFT_UP, 0);
 
   const { soundEnabled, toggleSound } = useSoundEnabled();
+  const { moveLimitEnabled, toggleMoveLimit } = useMoveLimitEnabled();
 
   const {
     screen,
@@ -55,7 +56,7 @@ function AppContent() {
     startNewGame,
     undo,
     attemptMove,
-  } = useGame();
+  } = useGame({ moveLimitEnabled });
 
   const { grid, goal, moveLimit } = level;
 
@@ -281,9 +282,24 @@ function AppContent() {
       ? 'Stage Clear!'
       : status === 'lost'
         ? lossReason === 'moves'
-          ? 'Out of moves'
-          : 'Time up'
+          ? 'Out of moves — tap Try Again'
+          : 'Time up — tap Try Again'
         : 'Use the D-pad';
+
+  const isLost = status === 'lost';
+  const nextLabel = gameCompleted ? 'Restart' : isLost ? 'Try Again' : 'Next Level';
+  const nextDisabled = !gameCompleted && !isLost && status !== 'won';
+  const handleNextAction = () => {
+    if (gameCompleted) {
+      restartGame();
+      return;
+    }
+    if (isLost) {
+      reset();
+      return;
+    }
+    newLevel();
+  };
 
   const isTimerWarning = TIMER_ENABLED && status === 'playing' && secondsLeft > 0 && secondsLeft <= 10;
   const isTimerCritical = isTimerWarning && secondsLeft <= 5;
@@ -309,6 +325,8 @@ function AppContent() {
         bottomInset={bottomInset}
         soundEnabled={soundEnabled}
         onToggleSound={toggleSound}
+        moveLimitEnabled={moveLimitEnabled}
+        onToggleMoveLimit={toggleMoveLimit}
       />
     );
   }
@@ -323,6 +341,7 @@ function AppContent() {
           maxLevel={MAX_LEVEL}
           movesUsed={movesUsed}
           moveLimit={moveLimit}
+          moveLimitEnabled={moveLimitEnabled}
           timerEnabled={TIMER_ENABLED}
           secondsLeft={secondsLeft}
           isTimerWarning={isTimerWarning}
@@ -348,15 +367,16 @@ function AppContent() {
           attemptMove={handleAttemptMove}
           status={status}
           undo={undo}
-          undoDisabled={history.length === 0 || undosUsed >= UNDO_LIMIT}
+          undoDisabled={(!isLost && status !== 'playing') || history.length === 0 || undosUsed >= UNDO_LIMIT}
           undoCountRemaining={Math.max(0, UNDO_LIMIT - undosUsed)}
           showUndo
           handleResetPress={handleResetPress}
           handleResetLongPress={handleResetLongPress}
           showResetHintInline={showResetHintInline}
-          onNextLevel={gameCompleted ? restartGame : newLevel}
-          nextDisabled={!gameCompleted && status !== 'won'}
-          nextLabel={gameCompleted ? 'Restart' : 'Next Level'}
+          onNextLevel={handleNextAction}
+          nextDisabled={nextDisabled}
+          nextLabel={nextLabel}
+          nextHighlighted={isLost}
         />
 
         <StatusBar style="light" />
