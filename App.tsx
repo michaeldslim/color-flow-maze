@@ -26,7 +26,7 @@ import { type TDirection, type TGameStatus } from './gameLogic';
 
 function AppContent() {
   const insets = useSafeAreaInsets();
-  const bottomInset = Platform.OS === 'ios' ? Math.max(insets.bottom, 16) + 16 : 32;
+  const bottomInset = Math.max(insets.bottom, Platform.OS === 'android' ? 24 : 12) + 12;
   const topPadding = Math.max(insets.top, Platform.OS === 'android' ? (RNStatusBar.currentHeight ?? 0) : 0);
   const SHIFT_UP = 15;
   const appliedTopPadding = Math.max(topPadding - SHIFT_UP, 0);
@@ -332,8 +332,8 @@ function AppContent() {
   }
 
   return (
-    <SafeAreaView style={[gameStyles.safeArea, { paddingTop: appliedTopPadding }]}>
-      <View style={[gameStyles.container, { paddingBottom: 12 + bottomInset }]}>
+    <SafeAreaView style={[gameStyles.safeArea, { paddingTop: appliedTopPadding, paddingBottom: bottomInset }]}>
+      <View style={gameStyles.container}>
         <HUD
           title="Color Flow Maze"
           subtitle={headerText}
@@ -350,17 +350,19 @@ function AppContent() {
         />
 
         <View style={gameStyles.boardWrapper}>
-          <Board
-            grid={grid}
-            position={position}
-            trail={trail}
-            goal={goal}
-            playerScale={playerScale}
-            goalPulse={goalPulse}
-            boardShakeX={boardShakeX}
-            winFlashOpacity={winFlashOpacity}
-          />
-          <LevelTransition levelNumber={levelNumber} visible={showLevelTransition && status === 'playing'} />
+          <View style={gameStyles.boardSlot}>
+            <Board
+              grid={grid}
+              position={position}
+              trail={trail}
+              goal={goal}
+              playerScale={playerScale}
+              goalPulse={goalPulse}
+              boardShakeX={boardShakeX}
+              winFlashOpacity={winFlashOpacity}
+            />
+            <LevelTransition levelNumber={levelNumber} visible={showLevelTransition && status === 'playing'} />
+          </View>
         </View>
 
         <Controls

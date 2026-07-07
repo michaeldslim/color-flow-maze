@@ -64,88 +64,90 @@ const Controls: React.FC<Props> = ({
     </Pressable>
   );
 
+  const actionButtons: React.ReactNode[] = [];
+
+  if (showUndo) {
+    actionButtons.push(
+      <Pressable
+        key="undo"
+        onPress={undo}
+        disabled={undoDisabled}
+        accessibilityRole="button"
+        accessibilityLabel={`Undo, ${undoCountRemaining} remaining`}
+        style={({ pressed }) => [
+          gameStyles.actionButton,
+          undoDisabled && gameStyles.buttonDisabled,
+          pressed && !undoDisabled && gameStyles.buttonPressed,
+        ]}
+      >
+        <Text style={gameStyles.buttonText}>Undo ({undoCountRemaining})</Text>
+      </Pressable>,
+    );
+  }
+
+  actionButtons.push(
+    <View key="reset" style={gameStyles.resetButtonWrap}>
+      {showResetHintInline ? (
+        <View style={gameStyles.resetHintBubble}>
+          <Text style={gameStyles.resetHintText}>Long press Reset to restart</Text>
+        </View>
+      ) : null}
+      <Pressable
+        onPress={handleResetPress}
+        onLongPress={handleResetLongPress}
+        delayLongPress={500}
+        accessibilityRole="button"
+        accessibilityLabel="Reset level. Long press to restart entire game."
+        style={({ pressed }) => [gameStyles.actionButton, pressed && gameStyles.buttonPressed]}
+      >
+        <Text style={gameStyles.buttonText}>Reset</Text>
+      </Pressable>
+    </View>,
+  );
+
+  actionButtons.push(
+    <Pressable
+      key="next"
+      onPress={onNextLevel}
+      disabled={nextDisabled}
+      accessibilityRole="button"
+      accessibilityLabel={nextLabel}
+      style={({ pressed }) => [
+        gameStyles.actionButton,
+        gameStyles.actionButtonLast,
+        nextHighlighted && gameStyles.buttonPrimary,
+        nextDisabled && gameStyles.buttonDisabled,
+        pressed && !nextDisabled && gameStyles.buttonPressed,
+      ]}
+    >
+      <Text style={[gameStyles.buttonText, nextHighlighted && gameStyles.buttonPrimaryText]}>{nextLabel}</Text>
+    </Pressable>,
+  );
+
   return (
-    <>
-      <View style={gameStyles.dpad}>
-        <View style={gameStyles.dpadRow}>
-          <View style={gameStyles.dpadSpacer} />
-          {renderDpadButton('up')}
-          <View style={gameStyles.dpadSpacer} />
-        </View>
-        <View style={gameStyles.dpadRow}>
-          {renderDpadButton('left')}
-          <View style={gameStyles.dpadSpacer} />
-          {renderDpadButton('right')}
-        </View>
-        <View style={gameStyles.dpadRow}>
-          <View style={gameStyles.dpadSpacer} />
-          {renderDpadButton('down')}
-          <View style={gameStyles.dpadSpacer} />
+    <View style={gameStyles.controlsSplit}>
+      <View style={gameStyles.actionColumn}>{actionButtons}</View>
+
+      <View style={gameStyles.dpadColumn}>
+        <View style={gameStyles.dpad}>
+          <View style={gameStyles.dpadRow}>
+            <View style={gameStyles.dpadSpacer} />
+            {renderDpadButton('up')}
+            <View style={gameStyles.dpadSpacer} />
+          </View>
+          <View style={gameStyles.dpadRow}>
+            {renderDpadButton('left')}
+            <View style={gameStyles.dpadSpacer} />
+            {renderDpadButton('right')}
+          </View>
+          <View style={gameStyles.dpadRow}>
+            <View style={gameStyles.dpadSpacer} />
+            {renderDpadButton('down')}
+            <View style={gameStyles.dpadSpacer} />
+          </View>
         </View>
       </View>
-
-      <View style={gameStyles.controlsRow}>
-        {showUndo ? (
-          <Pressable
-            onPress={undo}
-            disabled={undoDisabled}
-            accessibilityRole="button"
-            accessibilityLabel={`Undo, ${undoCountRemaining} remaining`}
-            style={({ pressed }) => [
-              gameStyles.button,
-              gameStyles.controlsButtonSize,
-              gameStyles.controlsButton,
-              undoDisabled && gameStyles.buttonDisabled,
-              pressed && !undoDisabled && gameStyles.buttonPressed,
-            ]}
-          >
-            <Text style={gameStyles.buttonText}>Undo ({undoCountRemaining})</Text>
-          </Pressable>
-        ) : null}
-
-        <View style={gameStyles.resetButtonWrap}>
-          {showResetHintInline ? (
-            <View style={gameStyles.resetHintBubble}>
-              <Text style={gameStyles.resetHintText}>Long press Reset to restart</Text>
-            </View>
-          ) : null}
-          <Pressable
-            onPress={handleResetPress}
-            onLongPress={handleResetLongPress}
-            delayLongPress={500}
-            accessibilityRole="button"
-            accessibilityLabel="Reset level. Long press to restart entire game."
-            style={({ pressed }) => [
-              gameStyles.button,
-              gameStyles.controlsButtonSize,
-              gameStyles.controlsButton,
-              pressed && gameStyles.buttonPressed,
-            ]}
-          >
-            <Text style={gameStyles.buttonText}>Reset</Text>
-          </Pressable>
-        </View>
-
-        <Pressable
-          onPress={onNextLevel}
-          disabled={nextDisabled}
-          accessibilityRole="button"
-          accessibilityLabel={nextLabel}
-          style={({ pressed }) => [
-            gameStyles.button,
-            gameStyles.controlsButtonSize,
-            gameStyles.controlsButton,
-            nextHighlighted && gameStyles.buttonPrimary,
-            nextDisabled && gameStyles.buttonDisabled,
-            pressed && !nextDisabled && gameStyles.buttonPressed,
-          ]}
-        >
-          <Text style={[gameStyles.buttonText, nextHighlighted && gameStyles.buttonPrimaryText]}>
-            {nextLabel}
-          </Text>
-        </Pressable>
-      </View>
-    </>
+    </View>
   );
 };
 

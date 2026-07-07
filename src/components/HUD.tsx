@@ -33,13 +33,14 @@ const HUD: React.FC<Props> = ({
 }) => {
   const movesRemaining = Math.max(0, moveLimit - movesUsed);
   const progress = Math.min(1, levelNumber / maxLevel);
-  const showTimerOnSecondRow = moveLimitEnabled && timerEnabled;
+  const isCompactHud = moveLimitEnabled && timerEnabled;
 
-  const timerText = (
+  const renderTimer = () => (
     <Animated.Text
       accessibilityLabel={`${secondsLeft} seconds remaining`}
       style={[
         gameStyles.hudText,
+        isCompactHud && gameStyles.hudTextCompact,
         isTimerWarning && gameStyles.hudTimeWarning,
         isTimerCritical && gameStyles.hudTimeCritical,
         isTimerWarning && {
@@ -55,31 +56,28 @@ const HUD: React.FC<Props> = ({
     </Animated.Text>
   );
 
+  const statTextStyle = [gameStyles.hudText, isCompactHud && gameStyles.hudTextCompact];
+
   return (
     <>
       <Text style={gameStyles.title}>{title}</Text>
       <Text style={gameStyles.subtitle}>{subtitle}</Text>
 
       <View style={gameStyles.hudContainer}>
-        <View style={gameStyles.hudRow}>
-          <Text style={gameStyles.hudText} accessibilityLabel={`Level ${levelNumber} of ${maxLevel}`}>
+        <View style={[gameStyles.hudRow, isCompactHud && gameStyles.hudRowCompact]}>
+          <Text style={statTextStyle} accessibilityLabel={`Level ${levelNumber} of ${maxLevel}`}>
             Level: {levelNumber}/{maxLevel}
           </Text>
           {moveLimitEnabled ? (
             <Text
-              style={gameStyles.hudText}
+              style={statTextStyle}
               accessibilityLabel={`${movesRemaining} moves remaining out of ${moveLimit}`}
             >
               Moves: {movesRemaining}/{moveLimit}
             </Text>
-          ) : timerEnabled ? (
-            timerText
           ) : null}
+          {timerEnabled ? renderTimer() : null}
         </View>
-
-        {showTimerOnSecondRow ? (
-          <View style={[gameStyles.hudRow, { marginTop: 6, justifyContent: 'flex-end' }]}>{timerText}</View>
-        ) : null}
 
         <View
           style={gameStyles.progressTrack}

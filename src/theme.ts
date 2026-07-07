@@ -71,6 +71,15 @@ export const gameStyles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
+  hudTextCompact: {
+    fontSize: 13,
+    fontWeight: '600',
+    letterSpacing: -0.15,
+    flexShrink: 1,
+  },
+  hudRowCompact: {
+    gap: 6,
+  },
   hudTimeWarning: {
     color: colors.timerWarning,
   },
@@ -91,15 +100,26 @@ export const gameStyles = StyleSheet.create({
     backgroundColor: colors.progressFill,
   },
   boardWrapper: {
-    marginTop: 20,
+    marginTop: 14,
+    marginBottom: 16,
     width: '100%',
     alignItems: 'center',
     position: 'relative',
+    flexGrow: 1,
+    flexShrink: 1,
+    justifyContent: 'center',
   },
-  board: {
+  boardSlot: {
     width: '100%',
     maxWidth: 360,
     aspectRatio: 1,
+    position: 'relative',
+    borderRadius: 14,
+    overflow: 'hidden',
+  },
+  board: {
+    width: '100%',
+    height: '100%',
     backgroundColor: colors.surface,
     borderRadius: 14,
     padding: 10,
@@ -199,10 +219,13 @@ export const gameStyles = StyleSheet.create({
   },
   levelTransitionOverlay: {
     ...StyleSheet.absoluteFillObject,
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(11, 18, 32, 0.72)',
-    borderRadius: 14,
+    backgroundColor: 'rgba(11, 18, 32, 0.82)',
     zIndex: 20,
   },
   levelTransitionBadge: {
@@ -220,25 +243,22 @@ export const gameStyles = StyleSheet.create({
     letterSpacing: 0.4,
   },
   dpad: {
-    width: '100%',
     alignItems: 'center',
-    marginTop: 4,
+    justifyContent: 'center',
   },
   dpadRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 6,
+    marginBottom: 4,
   },
   dpadSpacer: {
-    width: 52,
+    width: 40,
   },
   dpadButton: {
-    minWidth: 48,
-    minHeight: 48,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 12,
+    width: 42,
+    height: 42,
+    borderRadius: 10,
     backgroundColor: colors.buttonBg,
     borderWidth: 1,
     borderColor: colors.buttonBorder,
@@ -247,9 +267,44 @@ export const gameStyles = StyleSheet.create({
   },
   dpadArrow: {
     color: colors.textPrimary,
-    fontSize: 20,
+    fontSize: 17,
     fontWeight: '800',
-    lineHeight: 24,
+    lineHeight: 20,
+  },
+  controlsSplit: {
+    marginTop: 16,
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 4,
+    flexShrink: 0,
+  },
+  actionColumn: {
+    flexShrink: 0,
+    alignItems: 'flex-start',
+    justifyContent: 'center',
+  },
+  actionButton: {
+    alignSelf: 'flex-start',
+    minWidth: 142,
+    maxWidth: 172,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    backgroundColor: colors.buttonBg,
+    borderWidth: 1,
+    borderColor: colors.buttonBorder,
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  actionButtonLast: {
+    marginBottom: 0,
+  },
+  dpadColumn: {
+    width: 128,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   controlsRow: {
     marginTop: 24,
@@ -267,6 +322,7 @@ export const gameStyles = StyleSheet.create({
   },
   resetButtonWrap: {
     position: 'relative',
+    alignSelf: 'flex-start',
   },
   resetHintBubble: {
     position: 'absolute',
@@ -305,7 +361,7 @@ export const gameStyles = StyleSheet.create({
   },
   buttonText: {
     color: colors.textPrimary,
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '700',
   },
   buttonPrimary: {
