@@ -1,0 +1,196 @@
+---
+description: Product roadmap — UI polish, round-based difficulty, route-coverage mechanics
+globs: App.tsx,gameLogic.ts,src/**/*
+alwaysApply: false
+---
+
+# Color Flow Maze — Development Plan
+
+## Current State (baseline)
+
+| Area | Status | Notes |
+|------|--------|-------|
+| Levels | 50 procedural, seeded | `generateLevel()` in `gameLogic.ts` |
+| Grid | 8×8 → 12×12 | Grows every 2 levels from L2 |
+| Move limit | **Enforced** | Loss reason `moves`; shown in HUD |
+| Timer | Enabled (`TIMER_ENABLED=true`) | Loss reason `time`; hidden in HUD when disabled |
+| Undo | 5 per level (`UNDO_LIMIT`) | `showUndo` prop ready for Round 2 |
+| Ice cells | Generated + rendered | ❄ marker on tile; gameplay still inactive (Phase 3) |
+| Trail | Painted blue on move | Visual only — no routing constraint |
+| Rounds | Placeholder | `ROUND_NUMBER = 1` constant; full system in Phase 2 |
+| UI | **Phase 1 done** | `App.tsx` uses `Board`/`HUD`/`Controls`; shared `src/theme.ts` |
+
+---
+
+## Phase 1 — UI Improvements ✅ DONE
+
+### P1.1 Layout & component cleanup ✅
+- [x] Refactor `App.tsx` to use `Board`, `HUD`, `Controls`
+- [x] Extract shared styles to `src/theme.ts` (`colors`, `gameStyles`, `introStyles`)
+- [x] Show moves remaining in HUD: `Moves: {remaining}/{limit}`
+- [x] Hide timer row when `TIMER_ENABLED` is false
+
+### P1.2 Game feedback ✅
+- [x] Distinct lose states: "Time up" vs "Out of moves" (`lossReason` in `useGame`)
+- [x] Level-transition overlay: `LevelTransition` badge on level change
+- [x] Win/lose haptics + light haptic on blocked slide
+- [x] Ice tile visual: ❄ marker on ice cells
+
+### P1.3 Intro & onboarding ✅
+- [x] Legend card (Start / Goal / Wall / Trail / Ice) with color swatches
+- [x] Updated `gameInstructions.ts` (KO + EN): undo, moves, reset long-press
+- [x] "Round 1 — Tutorial" label via `ROUND_NUMBER` constant
+
+### P1.4 Controls UX ✅
+- [x] Arrow D-pad (▲▼◀▶) replacing text labels
+- [x] Larger touch targets (min 48×48 on D-pad buttons)
+- [x] `showUndo` prop — hides undo button entirely when false (wired for Phase 2)
+
+### P1.5 Polish ✅
+- [x] Level progress bar under HUD
+- [x] Sound toggle on intro (`src/settings.ts`, persisted via AsyncStorage)
+- [x] `accessibilityLabel` on board cells and all buttons
+
+### Phase 1 files added/changed
+| File | Change |
+|------|--------|
+| `src/theme.ts` | New — shared colors + styles |
+| `src/settings.ts` | New — sound preference hook |
+| `src/components/LevelTransition.tsx` | New — level badge overlay |
+| `src/components/HUD.tsx` | Moves, progress bar, conditional timer |
+| `src/components/Board.tsx` | Ice marker, accessibility labels |
+| `src/components/Controls.tsx` | Arrows, `showUndo`, accessibility |
+| `src/screens/Intro.tsx` | Legend, sound toggle, round label, theme |
+| `src/gameInstructions.ts` | Legend data, expanded copy |
+| `src/useGame.ts` | `lossReason`, move-limit enforcement |
+| `App.tsx` | Slimmed to orchestration + feedback |
+
+### Deferred from Phase 1
+- Swipe-to-move on board → Phase 4 backlog
+
+---
+
+## Phase 2 — Play Styles & Round System
+
+### Design: two-round structure
+
+```
+Round 1 (Tutorial Run)     Round 2+ (Challenge Run)
+─────────────────────────    ─────────────────────────
+Levels 1–50                  Levels 1–50 (new seeds)
+Full undo (5)                Undo hidden / 0 undos
+Timer off or generous        Timer on, tighter per level
+Trail visual only            Trail = required route (Phase 3)
+Reset always available       Reset limited or penalized
+Forgiving move limit         Strict move limit enforced
+```
+
+### P2.1 Data model (`src/persistence.ts`)
+```typescript
+type TSavedProgress = {
+  schemaVersion: 2;
+  roundNumber: number;
+  roundsCompleted: number;
+  difficultyProfile: 'tutorial' | 'challenge';
+  // ...existing fields
+};
+```
+- Bump `PROGRESS_SCHEMA_VERSION`; migrate v1 → v2 (default `roundNumber: 1`).
+- On beating level 50: set `roundsCompleted++`, offer "Start Round 2" on completion screen.
+
+### P2.2 Difficulty profile (`src/difficulty.ts`)
+```typescript
+function getRoundConfig(round: number): TRoundConfig {
+  if (round === 1) return { undoLimit: 5, timerEnabled: false, showUndo: true, enforceMoveLimit: false };
+  return { undoLimit: 0, timerEnabled: true, showUndo: false, enforceMoveLimit: true, timerSeconds: 45 };
+}
+```
+- `useGame` reads config from round instead of global constants.
+- Round 2+: pass `showUndo={false}` to `Controls` (prop already exists).
+
+### P2.3 Move limit enforcement ✅ (done early in Phase 1)
+Move limit is enforced in `useGame.attemptMove`; Round 2 may add stricter per-level limits.
+
+### P2.4 Round completion flow
+- Replace auto `newLevel()` at L50 with completion modal: stats, "Challenge Round" CTA, "Play Again".
+- `restartGame()` resets to Round 1; `startChallengeRound()` keeps seeds fresh, sets `roundNumber: 2`.
+
+---
+
+## Phase 3 — Route Coverage (post-level-10 obstacles)
+
+**Goal:** After level 10 each round, players cannot "shortcut" — they must paint the intended path or hit dead ends.
+
+### P3.1 Option A — One-way gates (recommended first)
+- New cell type: `gate` — passable only if trail already covers an adjacent "key" cell.
+- Place gate on shortest-path shortcuts during generation for `levelNumber > 10`.
+- BFS solvability must include gate state: `(position, trailMask)` or precompute required cells.
+
+### P3.2 Option B — Mandatory trail coverage
+- Mark `requiredCells: TPosition[]` during generation (cells on the unique/minimum path corridor).
+- Win condition: `didWin && requiredCells.every(p => trail[p.row][p.col])`.
+- Show required cells as faint gold overlay until painted.
+
+### P3.3 Option C — Ice stops (activate existing type)
+- **Ice = stoppable surface** (slide stops on ice even without wall).
+- Levels 11+: increase ice density along corridors; shortcuts lack ice → overshoot into dead end.
+- Update `slide()` and `minMovesToGoal` BFS to match.
+
+### P3.4 Level generator changes (`generateLevel`)
+For `levelNumber > 10`:
+1. Generate base maze (current logic).
+2. Compute shortest path cells via BFS parent map.
+3. Identify shortcut cells (high betweenness or off main path).
+4. Place walls/gates/ice to block shortcuts while keeping solvable.
+5. Reject layouts where multiple trivial paths exist (optional).
+
+### P3.5 Loophole prevention checklist
+- [ ] BFS uses same `slide()` semantics as gameplay (including ice/gates).
+- [ ] Goal remains a stoppable cell.
+- [ ] No soft-lock: player can always Reset.
+- [ ] Unit tests per mechanic in `__tests__/gameLogic.test.ts`.
+
+---
+
+## Phase 4 — Additional Ideas (backlog)
+
+| Idea | Effort | Impact |
+|------|--------|--------|
+| Swipe-to-move on board | Medium | Mobile UX |
+| Daily seed challenge (same layout for all players) | Medium | Retention |
+| Star rating (moves used vs par) | Low | Replay |
+| Per-round leaderboard (local) | Low | Motivation |
+| "Hardcore" Round 3: no Reset, 1 undo | Low | Depth |
+| Themed tile sets / seasons | Medium | Polish |
+| Haptic pattern per direction | Low | Feel |
+
+---
+
+## Implementation Order (updated)
+
+1. ~~Phase 1 UI refactor~~ ✅
+2. **Round 1 vs Round 2 profile** + completion screen (Phase 2)
+3. **Activate ice-stop mechanic** for levels 11+ (Phase 3)
+4. **Route-coverage gates or required cells** (Phase 3)
+5. **Backlog** items as time allows
+
+---
+
+## Files to Touch (by phase)
+
+| Phase | Primary files |
+|-------|----------------|
+| 1 UI ✅ | `App.tsx`, `src/components/*`, `src/theme.ts`, `src/screens/Intro.tsx` |
+| 2 Rounds | `src/constants.ts`, `src/difficulty.ts`, `src/useGame.ts`, `src/persistence.ts` |
+| 3 Obstacles | `gameLogic.ts`, `__tests__/gameLogic.test.ts` |
+| 4 Backlog | varies |
+
+---
+
+## Acceptance Criteria (Round 1 → Round 2)
+
+- [ ] New player completes 50 levels with undo, no timer pressure.
+- [ ] Completion screen offers Challenge Round; progress saves round number.
+- [ ] Round 2: undo hidden, timer active, move limit enforced.
+- [ ] Levels 11–50 in Round 2: at least one shortcut-blocking mechanic active.
+- [ ] All generated levels remain solvable (BFS test in CI).
