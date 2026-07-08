@@ -20,7 +20,8 @@ export type TRoundConfig = {
   mechanics: TRoundMechanics;
 };
 
-const CHALLENGE_TIMER_SECONDS = 45;
+const CHALLENGE_TIMER_SECONDS = 60;
+const MASTER_TIMER_SECONDS = 45;
 
 const CHALLENGE_BASE = {
   undoLimit: 0,
@@ -128,6 +129,7 @@ export function getRoundConfig(round: number): TRoundConfig {
   return {
     roundNumber: 5,
     ...CHALLENGE_BASE,
+    timerSeconds: MASTER_TIMER_SECONDS,
     difficultyProfile: 'master',
     mechanics: { iceStops: true, requireTrailCoverage: true },
   };

@@ -13,7 +13,7 @@ alwaysApply: false
 | Levels | Round-aware ✅ | Round 1: 10 levels; Round 2+: 50 levels |
 | Grid | 8×8 → 12×12 | Grows every 2 levels from L2 |
 | Move limit | Round-aware ✅ | Round 1: optional toggle; Round 2+: always enforced |
-| Timer | Round-aware ✅ | Off in Round 1; 45s in Round 2+ |
+| Timer | Round-aware ✅ | Off in Round 1; 60s in R2–R4; 45s in R5 |
 | Undo | Round-aware ✅ | 5 in Round 1; hidden / 0 in Round 2+ |
 | Ice cells | Generated + rendered | ❄ marker only — **ice-stop gameplay not active** |
 | Trail | Painted blue on move | Visual only — **path-forcing not active** |
@@ -31,15 +31,15 @@ alwaysApply: false
 Round 1 — Tutorial        Round 2 — Challenge       Round 3 — Ice
 ────────────────────      ─────────────────────     ─────────────────────
 Levels 1–10               Levels 1–50               Levels 1–50
-Undo 5, no timer          No undo, 45s timer        + Ice stops (❄)
+Undo 5, no timer          No undo, 60s timer        + Ice stops (❄)
 Optional move limit       Move limit enforced       (challenge base 유지)
                           New seeds                 New seeds
 
 Round 4 — Path            Round 5 — Master          → Cycle
 ────────────────────      ─────────────────────     ─────────────────────
 Levels 1–50               Levels 1–50               R5 클리어 후
-+ Required trail cells    Ice stops + path forcing  Round 2로 회귀
-(challenge base 유지)     (all mechanics)           (튜토리얼 제외 루프)
++ Required trail cells    45s timer                 Round 2로 회귀
+(challenge base 유지)     Ice stops + path forcing  (튜토리얼 제외 루프)
 New seeds                 New seeds
 ```
 
@@ -48,9 +48,9 @@ New seeds                 New seeds
 | Round | Label | Levels | Undo | Timer | Move limit | Ice stops | Path forcing |
 |-------|-------|--------|------|-------|------------|-----------|--------------|
 | 1 | Tutorial | 10 | 5 | Off | Optional | — | — |
-| 2 | Challenge | 50 | 0 | 45s | On | — | — |
-| 3 | Ice | 50 | 0 | 45s | On | ✅ config | — |
-| 4 | Path | 50 | 0 | 45s | On | — | ✅ config |
+| 2 | Challenge | 50 | 0 | 60s | On | — | — |
+| 3 | Ice | 50 | 0 | 60s | On | ✅ config | — |
+| 4 | Path | 50 | 0 | 60s | On | — | ✅ config |
 | 5 | Master | 50 | 0 | 45s | On | ✅ config | ✅ config |
 | R5 → | R2 | 50 | … | … | … | … | … |
 
@@ -119,7 +119,7 @@ New seeds                 New seeds
 - [x] `MAX_ROUND = 5`; `repairSavedProgress()` clamps `roundNumber > 5`
 
 ### P2.2 Difficulty profile (`src/difficulty.ts`) ✅
-- [x] `getRoundConfig(round)` — R1–R5 profiles
+- [x] `getRoundConfig(round)` — R1–R5 profiles (R2–R4: 60s timer; R5: 45s)
 - [x] `getMaxLevel(round)` — R1: 10, R2+: 50
 - [x] `TRoundMechanics { iceStops, requireTrailCoverage }` per round (config only)
 - [x] R3: `iceStops: true`; R4: `requireTrailCoverage: true`; R5: both
@@ -127,7 +127,8 @@ New seeds                 New seeds
 - [x] `getRoundLabel()` — R3 Ice / R4 Path / R5 Master
 
 ### P2.3 Challenge base (R2–R5 shared) ✅
-- [x] No undo, 45s timer, move limit enforced
+- [x] No undo, move limit enforced
+- [x] 60s timer (R2–R4); 45s timer (R5 master round)
 - [x] 50 levels, fresh seeds per round transition
 
 ### P2.4 Round completion flow ✅
@@ -277,23 +278,23 @@ Intro 컴팩트 1차(Phase 2.5) 이후, **나중에 더 하고 싶다면**:
 - [x] Completion offers Round 2
 
 ### Round 2 — Challenge
-- [x] 50 levels, no undo, 45s timer, move limit enforced
+- [x] 50 levels, no undo, 60s timer, move limit enforced
 - [x] Completion offers Round 3 via `advanceRound()`
 
 ### Round 3 — Ice
 - [ ] Ice stops active *(Phase 3 gameplay)*
-- [x] 50 levels, challenge base rules (config)
+- [x] 50 levels, 60s timer, challenge base rules (config)
 - [x] Completion offers Round 4
 
 ### Round 4 — Path
 - [ ] Required trail cells enforced *(Phase 4 gameplay)*
 - [ ] Gold overlay on unpainted required cells
-- [x] 50 levels, challenge base rules (config)
+- [x] 50 levels, 60s timer, challenge base rules (config)
 - [x] Completion offers Round 5
 
 ### Round 5 — Master
 - [ ] Ice stops + path forcing combined *(Phase 3+4 gameplay)*
-- [x] 50 levels, all challenge rules (config)
+- [x] 50 levels, 45s timer, all challenge rules (config)
 - [x] Completion cycles to Round 2
 
 ### Global

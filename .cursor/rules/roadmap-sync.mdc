@@ -1,0 +1,20 @@
+---
+description: Sync game-roadmap-plan.mdc when gameplay or round config changes
+globs: src/difficulty.ts,src/constants.ts,src/useGame.ts,src/persistence.ts,src/i18n/locales/*.ts,gameLogic.ts,src/gameInstructions.ts
+alwaysApply: false
+---
+
+# Roadmap sync
+
+When you change round config, timer, undo, move limit, mechanics flags, level counts, round cycle, intro copy, or phase completion status in the matched files:
+
+1. **Update in the same session** — edit `.cursor/rules/game-roadmap-plan.mdc` before finishing the task.
+2. **Keep these sections aligned with code:**
+   - **Current State** table (Timer, Undo, Move limit, Ice/Trail status, etc.)
+   - **Round Cycle Design** diagram and **Round config matrix**
+   - Relevant **Phase** bullets (e.g. P2.3 challenge base, P3/P4 acceptance)
+   - **Acceptance Criteria** per round
+3. **Scope** — change only roadmap sections affected by the code change; do not rewrite unrelated phases or backlog.
+4. **i18n** — if round instruction strings change (timer text, mechanic hints), confirm intro copy in the roadmap or Phase 2.4 bullets still match.
+
+If the user asks for a code-only change with no doc update, still mention that the roadmap may be stale unless they explicitly skip it.

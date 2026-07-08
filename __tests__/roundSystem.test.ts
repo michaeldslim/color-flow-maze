@@ -47,7 +47,7 @@ describe('getRoundConfig', () => {
       timerEnabled: true,
       showUndo: false,
       enforceMoveLimit: true,
-      timerSeconds: 45,
+      timerSeconds: 60,
       difficultyProfile: 'challenge',
       maxLevel: 50,
       mechanics: { iceStops: false, requireTrailCoverage: false },
