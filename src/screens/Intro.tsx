@@ -21,6 +21,38 @@ type Props = {
   showMoveLimitToggle: boolean;
 };
 
+function LangToggle({
+  lang,
+  onSelect,
+  style,
+}: {
+  lang: 'ko' | 'en';
+  onSelect: (lang: 'ko' | 'en') => void;
+  style?: object;
+}) {
+  return (
+    <View style={[introStyles.langToggleWrap, style]}>
+      {(['ko', 'en'] as const).map((code) => (
+        <Pressable
+          key={code}
+          onPress={() => onSelect(code)}
+          accessibilityRole="button"
+          accessibilityLabel={code === 'ko' ? 'Korean language' : 'English language'}
+          style={({ pressed }) => [
+            introStyles.langChip,
+            lang === code ? introStyles.langChipActive : introStyles.langChipInactive,
+            pressed && introStyles.buttonPressed,
+          ]}
+        >
+          <Text style={[introStyles.langChipText, lang === code && introStyles.langChipTextActive]}>
+            {code.toUpperCase()}
+          </Text>
+        </Pressable>
+      ))}
+    </View>
+  );
+}
+
 export default function Intro({
   hasResumeProgress,
   levelNumber,
@@ -46,55 +78,37 @@ export default function Intro({
   return (
     <SafeAreaView style={[introStyles.safeArea, { paddingTop: appliedTopPadding }]}>
       <View style={introStyles.introHeader}>
-        <Text style={introStyles.title}>Color Flow Maze</Text>
-        <Text style={introStyles.subtitle}>색깔 길찾기</Text>
-        <Text style={introStyles.roundLabel}>{getRoundLabel(roundNumber, lang)}</Text>
-      </View>
-
-      <View style={introStyles.langToggleWrap}>
-        <Pressable
-          onPress={() => setLang('ko')}
-          accessibilityRole="button"
-          accessibilityLabel="Korean language"
-          style={({ pressed }) => [
-            introStyles.langChip,
-            lang === 'ko' ? introStyles.langChipActive : introStyles.langChipInactive,
-            pressed && introStyles.buttonPressed,
-          ]}
-        >
-          <Text style={[introStyles.langChipText, lang === 'ko' && introStyles.langChipTextActive]}>KO</Text>
-        </Pressable>
-
-        <Pressable
-          onPress={() => setLang('en')}
-          accessibilityRole="button"
-          accessibilityLabel="English language"
-          style={({ pressed }) => [
-            introStyles.langChip,
-            lang === 'en' ? introStyles.langChipActive : introStyles.langChipInactive,
-            pressed && introStyles.buttonPressed,
-          ]}
-        >
-          <Text style={[introStyles.langChipText, lang === 'en' && introStyles.langChipTextActive]}>EN</Text>
-        </Pressable>
+        <View style={introStyles.introHeaderTopRow}>
+          <View style={introStyles.introHeaderCenter}>
+            <Text style={introStyles.title}>Color Flow Maze</Text>
+            <Text style={introStyles.subtitle}>색깔 길찾기</Text>
+            <Text style={introStyles.roundLabel}>{getRoundLabel(roundNumber, lang)}</Text>
+          </View>
+          <LangToggle lang={lang} onSelect={setLang} style={introStyles.introHeaderLang} />
+        </View>
       </View>
 
       <ScrollView
-        contentContainerStyle={[introStyles.introScrollContent, { paddingBottom: 40 + bottomInset }]}
+        style={introStyles.introBody}
+        contentContainerStyle={[introStyles.introScrollContent, { paddingBottom: 16 }]}
         alwaysBounceVertical
         showsVerticalScrollIndicator={false}
       >
         <View style={introStyles.introCard}>
           <Text style={introStyles.introSectionTitle}>{instructions.legendTitle}</Text>
-          {legendItems.map((item) => (
-            <View key={item.label} style={introStyles.legendRow}>
-              <View style={[introStyles.legendSwatch, { backgroundColor: item.color }]} />
-              <Text style={introStyles.legendLabel}>{item.label}</Text>
-            </View>
-          ))}
+          <View style={introStyles.legendGrid}>
+            {legendItems.map((item) => (
+              <View key={item.label} style={introStyles.legendRow}>
+                <View style={[introStyles.legendSwatch, { backgroundColor: item.color }]} />
+                <Text style={introStyles.legendLabel} numberOfLines={2}>
+                  {item.label}
+                </Text>
+              </View>
+            ))}
+          </View>
         </View>
 
-        <View style={[introStyles.introCard, { marginTop: 12 }]}>
+        <View style={[introStyles.introCard, { marginTop: 8 }]}>
           <Text style={introStyles.introSectionTitle}>{instructions.title}</Text>
           {instructionItems.map((item, index) => (
             <Text key={index} style={introStyles.introText}>
@@ -103,56 +117,62 @@ export default function Intro({
           ))}
         </View>
 
-        <View style={introStyles.settingsRow}>
-          <Text style={introStyles.settingsLabel}>{instructions.soundLabel}</Text>
-          <Pressable
-            onPress={onToggleSound}
-            accessibilityRole="switch"
-            accessibilityState={{ checked: soundEnabled }}
-            accessibilityLabel={`${instructions.soundLabel}, ${soundEnabled ? instructions.soundOn : instructions.soundOff}`}
-            style={({ pressed }) => [
-              introStyles.settingsToggle,
-              soundEnabled ? introStyles.settingsToggleOn : introStyles.settingsToggleOff,
-              pressed && introStyles.buttonPressed,
-            ]}
-          >
-            <Text
-              style={[
-                introStyles.settingsToggleText,
-                soundEnabled && introStyles.settingsToggleTextOn,
-              ]}
-            >
-              {soundEnabled ? instructions.soundOn : instructions.soundOff}
-            </Text>
-          </Pressable>
-        </View>
-
-        {showMoveLimitToggle ? (
-          <View style={[introStyles.settingsRow, { marginTop: 8 }]}>
-            <Text style={introStyles.settingsLabel}>{instructions.moveLimitLabel}</Text>
+        <View style={introStyles.settingsCard}>
+          <View style={introStyles.settingsRow}>
+            <Text style={introStyles.settingsLabel}>{instructions.soundLabel}</Text>
             <Pressable
-              onPress={onToggleMoveLimit}
+              onPress={onToggleSound}
               accessibilityRole="switch"
-              accessibilityState={{ checked: moveLimitEnabled }}
-              accessibilityLabel={`${instructions.moveLimitLabel}, ${moveLimitEnabled ? instructions.moveLimitOn : instructions.moveLimitOff}`}
+              accessibilityState={{ checked: soundEnabled }}
+              accessibilityLabel={`${instructions.soundLabel}, ${soundEnabled ? instructions.soundOn : instructions.soundOff}`}
               style={({ pressed }) => [
                 introStyles.settingsToggle,
-                moveLimitEnabled ? introStyles.settingsToggleOn : introStyles.settingsToggleOff,
+                soundEnabled ? introStyles.settingsToggleOn : introStyles.settingsToggleOff,
                 pressed && introStyles.buttonPressed,
               ]}
             >
               <Text
                 style={[
                   introStyles.settingsToggleText,
-                  moveLimitEnabled && introStyles.settingsToggleTextOn,
+                  soundEnabled && introStyles.settingsToggleTextOn,
                 ]}
               >
-                {moveLimitEnabled ? instructions.moveLimitOn : instructions.moveLimitOff}
+                {soundEnabled ? instructions.soundOn : instructions.soundOff}
               </Text>
             </Pressable>
           </View>
-        ) : null}
 
+          {showMoveLimitToggle ? (
+            <View style={[introStyles.settingsRow, introStyles.settingsRowBorder]}>
+              <Text style={introStyles.settingsLabel}>{instructions.moveLimitLabel}</Text>
+              <Pressable
+                onPress={onToggleMoveLimit}
+                accessibilityRole="switch"
+                accessibilityState={{ checked: moveLimitEnabled }}
+                accessibilityLabel={`${instructions.moveLimitLabel}, ${moveLimitEnabled ? instructions.moveLimitOn : instructions.moveLimitOff}`}
+                style={({ pressed }) => [
+                  introStyles.settingsToggle,
+                  moveLimitEnabled ? introStyles.settingsToggleOn : introStyles.settingsToggleOff,
+                  pressed && introStyles.buttonPressed,
+                ]}
+              >
+                <Text
+                  style={[
+                    introStyles.settingsToggleText,
+                    moveLimitEnabled && introStyles.settingsToggleTextOn,
+                  ]}
+                >
+                  {moveLimitEnabled ? instructions.moveLimitOn : instructions.moveLimitOff}
+                </Text>
+              </Pressable>
+            </View>
+          ) : null}
+        </View>
+
+        <StatusBar style="light" />
+      </ScrollView>
+
+      <View style={[introStyles.introFooter, { paddingBottom: Math.max(bottomInset, 12) }]}>
         <Pressable
           onPress={continueGame}
           disabled={!hasResumeProgress}
@@ -182,9 +202,7 @@ export default function Intro({
         >
           <Text style={introStyles.buttonText}>{lang === 'en' ? 'New Game' : '새 게임'}</Text>
         </Pressable>
-
-        <StatusBar style="light" />
-      </ScrollView>
+      </View>
     </SafeAreaView>
   );
 }
