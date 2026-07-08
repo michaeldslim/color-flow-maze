@@ -10,7 +10,7 @@ alwaysApply: false
 
 | Area | Status | Notes |
 |------|--------|-------|
-| Levels | Round-aware (partial) | Round 1: 10 levels ✅; Round 2+: 50 levels ✅ |
+| Levels | Round-aware ✅ | Round 1: 10 levels; Round 2+: 50 levels |
 | Grid | 8×8 → 12×12 | Grows every 2 levels from L2 |
 | Move limit | Round-aware ✅ | Round 1: optional toggle; Round 2+: always enforced |
 | Timer | Round-aware ✅ | Off in Round 1; 45s in Round 2+ |
@@ -18,13 +18,13 @@ alwaysApply: false
 | Ice cells | Generated + rendered | ❄ marker only — **ice-stop gameplay not active** |
 | Trail | Painted blue on move | Visual only — **path-forcing not active** |
 | Rounds | **Phase 2 done** | R1→R2→…→R5→R2 순환 (`advanceRound`) |
-| UI | **Phase 1 done** | `App.tsx` uses `Board`/`HUD`/`Controls`; shared `src/theme.ts` |
+| Intro UI | **Partial** | 컴팩트 1차 ✅ (`Intro.tsx`); 추가 폴리시 → Phase 6 |
 
 ---
 
-## Round Cycle Design (target)
+## Round Cycle Design
 
-5라운드 순환 구조. 각 라운드는 이전 챌린지 규칙을 유지하면서 메커닉이 **누적**되지 않고 **단계별로 추가**된다.
+5라운드 순환 구조. 각 라운드는 메커닉이 **단계별로 추가**된다 (R5 이후 R2로 루프).
 
 ```
 Round 1 — Tutorial        Round 2 — Challenge       Round 3 — Ice
@@ -32,7 +32,6 @@ Round 1 — Tutorial        Round 2 — Challenge       Round 3 — Ice
 Levels 1–10               Levels 1–50               Levels 1–50
 Undo 5, no timer          No undo, 45s timer        + Ice stops (❄)
 Optional move limit       Move limit enforced       (challenge base 유지)
-Trail visual only         Trail visual only         Trail visual only
                           New seeds                 New seeds
 
 Round 4 — Path            Round 5 — Master          → Cycle
@@ -43,31 +42,32 @@ Levels 1–50               Levels 1–50               R5 클리어 후
 New seeds                 New seeds
 ```
 
-### Round config matrix (target `getRoundConfig`)
+### Round config matrix (`getRoundConfig`)
 
 | Round | Label | Levels | Undo | Timer | Move limit | Ice stops | Path forcing |
 |-------|-------|--------|------|-------|------------|-----------|--------------|
 | 1 | Tutorial | 10 | 5 | Off | Optional | — | — |
 | 2 | Challenge | 50 | 0 | 45s | On | — | — |
-| 3 | Ice | 50 | 0 | 45s | On | ✅ | — |
-| 4 | Path | 50 | 0 | 45s | On | — | ✅ |
-| 5 | Master | 50 | 0 | 45s | On | ✅ | ✅ |
-| → 1 | (cycle) | 10 | … | … | … | — | — |
+| 3 | Ice | 50 | 0 | 45s | On | ✅ config | — |
+| 4 | Path | 50 | 0 | 45s | On | — | ✅ config |
+| 5 | Master | 50 | 0 | 45s | On | ✅ config | ✅ config |
+| R5 → | R2 | 50 | … | … | … | … | … |
 
-### Completion flow (target)
+> Ice / Path 열: **config 완료** (Phase 2). **gameplay 연동**은 Phase 3·4.
+
+### Completion flow
 
 | Round 완료 | 모달 CTA |
 |------------|----------|
-| Round 1 | **Start Round 2** / Play Again (R1) / Main Menu |
+| Round 1 | **Continue to Round 2** / Play Again (R1) / Main Menu |
 | Round 2 | **Continue to Round 3** / Play Again / Main Menu |
 | Round 3 | **Continue to Round 4** / Play Again / Main Menu |
 | Round 4 | **Continue to Round 5** / Play Again / Main Menu |
 | Round 5 | **Continue to Round 2** / Play Again (R5) / Main Menu |
 
-- `advanceRound()`: R1→R2→R3→R4→R5→**R2** (R5 이후 챌린지 루프)
+- `advanceRound()`: R1→R2→R3→R4→R5→**R2**
 - `restartGame()`: 항상 Round 1, fresh seeds
 - `replayCurrentRound()`: 현재 라운드 재시작, fresh seeds
-- 각 라운드 전환 시 **새 시드** (맵 레이아웃 변경)
 
 ---
 
@@ -137,6 +137,11 @@ New seeds                 New seeds
 - [x] Modal CTA: round별 "Continue to Round N" / R5 → Round 2
 - [x] Round별 intro 안내 문구 + legend (`gameInstructions.ts`)
 
+### P2.5 Intro 컴팩트 1차 ✅
+- [x] Lang 토글 → 헤더 우측 상단
+- [x] 플레이 버튼 하단 고정 (footer)
+- [x] Legend 2열 그리드, 설정 단일 카드, 여백·폰트 축소
+
 ### Phase 2 files changed
 | File | Change |
 |------|--------|
@@ -156,19 +161,21 @@ New seeds                 New seeds
 **Goal:** 얼음(❄) 타일에서 벽 없이도 미끄러짐이 멈춘다.
 
 ### P3.1 `slide()` ice-stop semantics
-- `slide(grid, from, dir, { iceStops })` — `iceStops: true`이면 ice 셀에서 정지
-- `minMovesToGoal()` BFS도 동일 옵션 사용
+- [ ] `slide(grid, from, dir, { iceStops })` — `iceStops: true`이면 ice 셀에서 정지
+- [ ] `minMovesToGoal()` BFS도 동일 옵션 사용
 
 ### P3.2 Level generation (Round 3, 5)
-- `generateLevel(level, seed, { iceStops })` — ice 활성 라운드에서 BFS solvability 검증
-- Ice 밀도: corridor 위주 배치 (숏컷에는 ice 없음 → overshoot 유도)
+- [ ] `generateLevel(level, seed, { iceStops })` — ice 활성 라운드에서 BFS solvability 검증
+- [ ] Ice 밀도: corridor 위주 배치 (숏컷에는 ice 없음 → overshoot 유도)
 
-### P3.3 UI / feedback
+### P3.3 `useGame` wiring
+- [ ] `attemptMove` / `slide`에 `roundConfig.mechanics.iceStops` 전달
+
+### P3.4 UI / feedback
 - [x] ❄ marker on board (done)
-- [ ] Intro / legend: "얼음에서 멈춥니다" (R3, R5)
 - [ ] Blocked-slide haptic when overshooting past ice (optional)
 
-### P3.4 Tests
+### P3.5 Tests
 - [ ] `slide` stops on ice when `iceStops: true`
 - [ ] Generated R3/R5 levels solvable with ice semantics
 
@@ -179,18 +186,18 @@ New seeds                 New seeds
 **Goal:** 최단 경로 corridor 셀을 모두 칠해야 승리.
 
 ### P4.1 Required cells (`gameLogic.ts`)
-- `generateLevel(..., { requireTrailCoverage })` → `requiredCells: TPosition[]`
-- BFS parent map으로 shortest-path corridor 계산
-- Win: `atGoal && requiredCells.every(p => trail[p.row][p.col])`
+- [ ] `generateLevel(..., { requireTrailCoverage })` → `requiredCells: TPosition[]`
+- [ ] BFS parent map으로 shortest-path corridor 계산
+- [ ] Win: `atGoal && requiredCells.every(p => trail[p.row][p.col])`
 
 ### P4.2 Board overlay
-- Required cells: faint gold highlight until painted
-- Legend: "금색 — 반드시 지나가야 하는 칸" (R4, R5)
+- [ ] Required cells: faint gold highlight until painted
+- [ ] `useGame.attemptMove` win check
 
 ### P4.3 Loophole prevention
 - [ ] BFS / `slide` semantics 일치 (ice 활성 라운드는 ice 포함)
 - [ ] Goal remains stoppable
-- [ ] Player can always Reset (no soft-lock)
+- [ ] No soft-lock: player can always Reset
 - [ ] Unit tests in `__tests__/gameLogic.test.ts`
 
 ### P4.4 Deferred: one-way gates
@@ -212,13 +219,28 @@ New seeds                 New seeds
 
 ---
 
-## Implementation Order (updated)
+## Phase 6 — Intro UI 추가 폴리시 (미적용)
+
+Intro 컴팩트 1차(Phase 2.5) 이후, **나중에 더 하고 싶다면**:
+
+| 아이디어 | 효과 |
+|----------|------|
+| 「플레이 방법」접기/펼치기 | R3~R5에서 스크롤 대폭 감소 |
+| 라운드별 안내 문구 축약 | 텍스트 자체를 짧게 |
+| 레전드는 R1만 풀 표시, R2+는 아이콘만 | 반복 정보 제거 |
+
+**Primary files:** `src/screens/Intro.tsx`, `src/gameInstructions.ts`
+
+---
+
+## Implementation Order
 
 1. ~~Phase 1 UI refactor~~ ✅
 2. ~~5-round cycle + profiles (Phase 2)~~ ✅
 3. **Phase 3** — Ice stops gameplay (R3, R5)
 4. **Phase 4** — Path forcing gameplay (R4, R5)
 5. **Phase 5 backlog** as time allows
+6. **Phase 6** — Intro UI 추가 폴리시 (optional)
 
 ---
 
@@ -227,10 +249,11 @@ New seeds                 New seeds
 | Phase | Primary files |
 |-------|----------------|
 | 1 UI ✅ | `App.tsx`, `src/components/*`, `src/theme.ts`, `src/screens/Intro.tsx` |
-| 2 Rounds ✅ | `src/constants.ts`, `src/difficulty.ts`, `src/useGame.ts`, `src/persistence.ts`, `RoundCompleteModal.tsx` |
-| 3 Ice | `gameLogic.ts`, `src/useGame.ts`, `src/components/Board.tsx`, `__tests__/gameLogic.test.ts` |
-| 4 Path | `gameLogic.ts`, `src/useGame.ts`, `src/components/Board.tsx`, `src/theme.ts`, `__tests__/gameLogic.test.ts` |
+| 2 Rounds ✅ | `src/constants.ts`, `src/difficulty.ts`, `src/useGame.ts`, `src/persistence.ts` |
+| 3 Ice | `gameLogic.ts`, `src/useGame.ts`, `__tests__/gameLogic.test.ts` |
+| 4 Path | `gameLogic.ts`, `src/useGame.ts`, `src/components/Board.tsx`, `src/theme.ts` |
 | 5 Backlog | varies |
+| 6 Intro polish | `src/screens/Intro.tsx`, `src/gameInstructions.ts` |
 
 ---
 
@@ -261,6 +284,6 @@ New seeds                 New seeds
 - [x] Completion cycles to Round 2
 
 ### Global
+- [x] Progress persists `roundNumber` across sessions
+- [x] `roundsCompleted` increments on each round clear
 - [ ] All generated levels remain solvable (BFS test in CI)
-- [ ] Progress persists `roundNumber` across sessions
-- [ ] `roundsCompleted` increments on each round clear
