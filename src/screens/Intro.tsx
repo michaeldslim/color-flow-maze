@@ -3,7 +3,7 @@ import { StatusBar } from 'expo-status-bar';
 import { ScrollView, View, Text, Pressable, Platform } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar as RNStatusBar } from 'react-native';
-import { gameInstructions } from '../gameInstructions';
+import { getInstructionItems, getLegendForRound, gameInstructions } from '../gameInstructions';
 import { getRoundLabel } from '../difficulty';
 import { introStyles } from '../theme';
 
@@ -40,8 +40,8 @@ export default function Intro({
   const appliedTopPadding = Math.max(topPadding - SHIFT_UP, 0);
   const [lang, setLang] = useState<'ko' | 'en'>('ko');
   const instructions = gameInstructions[lang];
-  const instructionItems =
-    roundNumber === 1 ? instructions.items.tutorial : instructions.items.challenge;
+  const instructionItems = getInstructionItems(lang, roundNumber);
+  const legendItems = getLegendForRound(lang, roundNumber);
 
   return (
     <SafeAreaView style={[introStyles.safeArea, { paddingTop: appliedTopPadding }]}>
@@ -86,7 +86,7 @@ export default function Intro({
       >
         <View style={introStyles.introCard}>
           <Text style={introStyles.introSectionTitle}>{instructions.legendTitle}</Text>
-          {instructions.legend.map((item) => (
+          {legendItems.map((item) => (
             <View key={item.label} style={introStyles.legendRow}>
               <View style={[introStyles.legendSwatch, { backgroundColor: item.color }]} />
               <Text style={introStyles.legendLabel}>{item.label}</Text>
