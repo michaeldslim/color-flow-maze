@@ -1,15 +1,22 @@
 import React from 'react';
 import { Modal, Pressable, Text, View } from 'react-native';
-import { getMaxLevel } from '../difficulty';
+import {
+  getAdvanceRoundCtaLabel,
+  getMaxLevel,
+  getRoundCompleteSubtitle,
+  getRoundCompleteTitle,
+  getRoundLabel,
+  clampRoundNumber,
+} from '../difficulty';
+import { MAX_ROUND } from '../constants';
 import { gameStyles } from '../theme';
 
 type Props = {
   visible: boolean;
   roundNumber: number;
   roundsCompleted: number;
-  onStartChallenge: () => void;
-  onPlayAgainTutorial: () => void;
-  onPlayAgainChallenge: () => void;
+  onAdvanceRound: () => void;
+  onPlayAgain: () => void;
   onBackToIntro: () => void;
 };
 
@@ -17,17 +24,18 @@ const RoundCompleteModal: React.FC<Props> = ({
   visible,
   roundNumber,
   roundsCompleted,
-  onStartChallenge,
-  onPlayAgainTutorial,
-  onPlayAgainChallenge,
+  onAdvanceRound,
+  onPlayAgain,
   onBackToIntro,
 }) => {
-  const isTutorialComplete = roundNumber === 1;
-  const maxLevel = getMaxLevel(roundNumber);
-  const title = isTutorialComplete ? 'Tutorial Complete!' : 'Challenge Complete!';
-  const subtitle = isTutorialComplete
-    ? `You cleared all ${maxLevel} tutorial levels.`
-    : `You conquered Round ${roundNumber} — all ${maxLevel} levels.`;
+  const normalizedRound = clampRoundNumber(roundNumber);
+  const maxLevel = getMaxLevel(normalizedRound);
+  const isCycleComplete = normalizedRound >= MAX_ROUND;
+  const title = getRoundCompleteTitle(normalizedRound);
+  const subtitle = getRoundCompleteSubtitle(normalizedRound);
+  const advanceLabel = getAdvanceRoundCtaLabel(normalizedRound);
+  const playAgainLabel =
+    normalizedRound === 1 ? 'Play Again (Round 1)' : `Play Again (Round ${normalizedRound})`;
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onBackToIntro}>
@@ -35,44 +43,34 @@ const RoundCompleteModal: React.FC<Props> = ({
         <View style={gameStyles.modalCard} accessibilityViewIsModal>
           <Text style={gameStyles.modalTitle}>{title}</Text>
           <Text style={gameStyles.modalSubtitle}>{subtitle}</Text>
+          <Text style={gameStyles.modalRoundBadge}>{getRoundLabel(normalizedRound, 'en')}</Text>
 
           <View style={gameStyles.modalStatsRow}>
             <Text style={gameStyles.modalStat}>Rounds finished: {roundsCompleted}</Text>
+            <Text style={gameStyles.modalStat}>Levels cleared: {maxLevel}</Text>
           </View>
 
-          {isTutorialComplete ? (
-            <Pressable
-              onPress={onStartChallenge}
-              accessibilityRole="button"
-              accessibilityLabel="Start Challenge Round"
-              style={({ pressed }) => [
-                gameStyles.modalPrimaryButton,
-                pressed && gameStyles.buttonPressed,
-              ]}
-            >
-              <Text style={gameStyles.modalPrimaryButtonText}>Start Challenge Round</Text>
-            </Pressable>
-          ) : null}
+          <Pressable
+            onPress={onAdvanceRound}
+            accessibilityRole="button"
+            accessibilityLabel={advanceLabel}
+            style={({ pressed }) => [gameStyles.modalPrimaryButton, pressed && gameStyles.buttonPressed]}
+          >
+            <Text style={gameStyles.modalPrimaryButtonText}>{advanceLabel}</Text>
+          </Pressable>
 
           <Pressable
-            onPress={isTutorialComplete ? onPlayAgainTutorial : onPlayAgainChallenge}
+            onPress={onPlayAgain}
             accessibilityRole="button"
-            accessibilityLabel={isTutorialComplete ? 'Play Round 1 again' : 'Play challenge again'}
-            style={({ pressed }) => [
-              gameStyles.modalSecondaryButton,
-              !isTutorialComplete && gameStyles.modalPrimaryButton,
-              pressed && gameStyles.buttonPressed,
-            ]}
+            accessibilityLabel={playAgainLabel}
+            style={({ pressed }) => [gameStyles.modalSecondaryButton, pressed && gameStyles.buttonPressed]}
           >
-            <Text
-              style={[
-                gameStyles.modalSecondaryButtonText,
-                !isTutorialComplete && gameStyles.modalPrimaryButtonText,
-              ]}
-            >
-              {isTutorialComplete ? 'Play Again (Round 1)' : 'Play Again'}
-            </Text>
+            <Text style={gameStyles.modalSecondaryButtonText}>{playAgainLabel}</Text>
           </Pressable>
+
+          {isCycleComplete ? (
+            <Text style={gameStyles.modalCycleHint}>Full cycle complete — back to Round 2.</Text>
+          ) : null}
 
           <Pressable
             onPress={onBackToIntro}

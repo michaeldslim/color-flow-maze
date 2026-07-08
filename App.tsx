@@ -4,6 +4,7 @@ import Fireworks from './Fireworks';
 import * as Haptics from 'expo-haptics';
 import React, { useEffect, useRef, useState } from 'react';
 import useGame from './src/useGame';
+import { getRoundCompleteTitle } from './src/difficulty';
 import {
   ActivityIndicator,
   Animated,
@@ -57,7 +58,7 @@ function AppContent() {
     newLevel,
     restartGame,
     replayCurrentRound,
-    startChallengeRound,
+    advanceRound,
     continueGame,
     startNewGame,
     backToIntro,
@@ -285,9 +286,7 @@ function AppContent() {
   };
 
   const headerText = gameCompleted
-    ? roundNumber === 1
-      ? 'Tutorial complete!'
-      : 'Challenge complete!'
+    ? getRoundCompleteTitle(roundNumber)
     : status === 'won'
       ? 'Stage Clear!'
       : status === 'lost'
@@ -395,9 +394,8 @@ function AppContent() {
           visible={gameCompleted}
           roundNumber={roundNumber}
           roundsCompleted={roundsCompleted}
-          onStartChallenge={startChallengeRound}
-          onPlayAgainTutorial={restartGame}
-          onPlayAgainChallenge={replayCurrentRound}
+          onAdvanceRound={advanceRound}
+          onPlayAgain={roundNumber === 1 ? restartGame : replayCurrentRound}
           onBackToIntro={backToIntro}
         />
       </View>

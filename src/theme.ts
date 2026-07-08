@@ -417,6 +417,20 @@ export const gameStyles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
+  modalRoundBadge: {
+    marginTop: 10,
+    color: colors.accent,
+    fontSize: 13,
+    fontWeight: '700',
+    letterSpacing: 0.2,
+  },
+  modalCycleHint: {
+    marginTop: 8,
+    color: colors.textSecondary,
+    fontSize: 13,
+    textAlign: 'center',
+    lineHeight: 18,
+  },
   modalPrimaryButton: {
     marginTop: 12,
     width: '100%',
