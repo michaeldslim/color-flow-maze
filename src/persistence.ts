@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { type TPosition, type TGameStatus } from '../gameLogic';
-import { getDifficultyProfile, type TDifficultyProfile } from './difficulty';
+import { getDifficultyProfile, isValidDifficultyProfile, clampRoundNumber, type TDifficultyProfile } from './difficulty';
 
 export type TScreen = 'intro' | 'game';
 
@@ -101,7 +101,7 @@ function isValidSavedProgress(value: unknown): value is TSavedProgress {
   if (typeof candidate.roundsCompleted !== 'number' || !Number.isInteger(candidate.roundsCompleted) || candidate.roundsCompleted < 0) {
     return false;
   }
-  if (candidate.difficultyProfile !== 'tutorial' && candidate.difficultyProfile !== 'challenge') return false;
+  if (!isValidDifficultyProfile(candidate.difficultyProfile)) return false;
   if (candidate.screen !== 'intro' && candidate.screen !== 'game') return false;
   if (typeof candidate.levelNumber !== 'number' || !Number.isInteger(candidate.levelNumber)) return false;
   if (!Array.isArray(candidate.levelSeeds) || candidate.levelSeeds.length < candidate.levelNumber) return false;
@@ -132,9 +132,18 @@ export function migrateV1ToV2(saved: TSavedProgressV1): TSavedProgress {
   };
 }
 
+export function repairSavedProgress(saved: TSavedProgress): TSavedProgress {
+  const roundNumber = clampRoundNumber(saved.roundNumber);
+  return {
+    ...saved,
+    roundNumber,
+    difficultyProfile: getDifficultyProfile(roundNumber),
+  };
+}
+
 export function normalizeSavedProgress(value: unknown): TSavedProgress | null {
-  if (isValidSavedProgress(value)) return value;
-  if (isValidSavedProgressV1(value)) return migrateV1ToV2(value);
+  if (isValidSavedProgress(value)) return repairSavedProgress(value);
+  if (isValidSavedProgressV1(value)) return repairSavedProgress(migrateV1ToV2(value));
   return null;
 }
 

@@ -15,7 +15,7 @@ import {
   type TPosition,
 } from '../gameLogic';
 import { loadSavedProgress, saveSavedProgress, type TSavedInLevelProgress, type TSavedProgress } from './persistence';
-import { getDifficultyProfile, getMaxLevel, getRoundConfig } from './difficulty';
+import { clampRoundNumber, getDifficultyProfile, getMaxLevel, getNextRound, getRoundConfig } from './difficulty';
 
 export type TScreen = 'intro' | 'game';
 export type TLossReason = 'time' | 'moves' | null;
@@ -73,14 +73,15 @@ export function useGame(options: UseGameOptions = {}) {
 
       if (cancelled) return;
 
-      const maxLevel = getMaxLevel(saved.roundNumber);
+      const roundNumber = clampRoundNumber(saved.roundNumber);
+      const maxLevel = getMaxLevel(roundNumber);
       const levelNumber = Math.min(saved.levelNumber, maxLevel);
-      const gameCompleted = saved.gameCompleted || (saved.roundNumber === 1 && saved.levelNumber > maxLevel);
+      const gameCompleted = saved.gameCompleted || (roundNumber === 1 && saved.levelNumber > maxLevel);
 
       setHasResumeProgress(
         saved.screen === 'game' || levelNumber > 1 || gameCompleted || saved.inLevelProgress != null,
       );
-      setRoundNumber(saved.roundNumber);
+      setRoundNumber(roundNumber);
       setRoundsCompleted(saved.roundsCompleted);
       setLevelSeeds(saved.levelSeeds);
       setLevelNumber(levelNumber);
@@ -252,9 +253,10 @@ export function useGame(options: UseGameOptions = {}) {
     setScreen('game');
   };
 
-  const startChallengeRound = () => {
+  const advanceRound = () => {
     const seed = Date.now() >>> 0;
-    setRoundNumber(2);
+    const nextRound = getNextRound(roundNumber);
+    setRoundNumber(nextRound);
     setGameCompleted(false);
     setLevelSeeds([seed]);
     setLevelNumber(1);
@@ -262,6 +264,9 @@ export function useGame(options: UseGameOptions = {}) {
     setHasResumeProgress(true);
     setScreen('game');
   };
+
+  /** @deprecated Use advanceRound */
+  const startChallengeRound = advanceRound;
 
   const continueGame = () => setScreen('game');
   const startNewGame = () => {
@@ -360,6 +365,7 @@ export function useGame(options: UseGameOptions = {}) {
     newLevel,
     restartGame,
     replayCurrentRound,
+    advanceRound,
     startChallengeRound,
     continueGame,
     startNewGame,
