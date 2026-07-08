@@ -1,4 +1,5 @@
 import { CHALLENGE_MAX_LEVEL, LEVEL_TIME_SECONDS, MAX_ROUND, TUTORIAL_MAX_LEVEL } from './constants';
+import i18n from './i18n';
 
 export type TDifficultyProfile = 'tutorial' | 'challenge' | 'ice' | 'path' | 'master';
 
@@ -30,6 +31,37 @@ const CHALLENGE_BASE = {
   maxLevel: CHALLENGE_MAX_LEVEL,
 } as const;
 
+function getRoundNameKey(round: number): keyof typeof ROUND_NAME_KEYS {
+  switch (clampRoundNumber(round)) {
+    case 1:
+      return 'tutorial';
+    case 2:
+      return 'challenge';
+    case 3:
+      return 'ice';
+    case 4:
+      return 'path';
+    default:
+      return 'master';
+  }
+}
+
+const ROUND_NAME_KEYS = {
+  tutorial: 'tutorial',
+  challenge: 'challenge',
+  ice: 'ice',
+  path: 'path',
+  master: 'master',
+} as const;
+
+const ROUND_COMPLETE_KEYS = {
+  1: 'tutorial',
+  2: 'challenge',
+  3: 'ice',
+  4: 'path',
+  5: 'master',
+} as const;
+
 export function clampRoundNumber(round: number): number {
   if (!Number.isInteger(round) || round < 1) return 1;
   return Math.min(round, MAX_ROUND);
@@ -46,20 +78,7 @@ export function getNextRound(round: number): number {
 }
 
 export function getDifficultyProfile(round: number): TDifficultyProfile {
-  switch (clampRoundNumber(round)) {
-    case 1:
-      return 'tutorial';
-    case 2:
-      return 'challenge';
-    case 3:
-      return 'ice';
-    case 4:
-      return 'path';
-    case 5:
-      return 'master';
-    default:
-      return 'tutorial';
-  }
+  return getRoundNameKey(round);
 }
 
 export function getRoundConfig(round: number): TRoundConfig {
@@ -114,56 +133,39 @@ export function getRoundConfig(round: number): TRoundConfig {
   };
 }
 
-const ROUND_NAMES = {
-  en: {
-    1: 'Tutorial',
-    2: 'Challenge',
-    3: 'Ice',
-    4: 'Path',
-    5: 'Master',
-  },
-  ko: {
-    1: '튜토리얼',
-    2: '챌린지',
-    3: '얼음',
-    4: '경로',
-    5: '마스터',
-  },
-} as const;
-
-export function getRoundLabel(round: number, lang: 'ko' | 'en'): string {
+export function getRoundLabel(round: number): string {
   const roundNumber = clampRoundNumber(round);
-  const name = ROUND_NAMES[lang][roundNumber as 1 | 2 | 3 | 4 | 5];
-  return lang === 'ko' ? `라운드 ${roundNumber} — ${name}` : `Round ${roundNumber} — ${name}`;
+  const nameKey = getRoundNameKey(roundNumber);
+  return i18n.t('rounds.label', {
+    n: roundNumber,
+    name: i18n.t(`rounds.names.${nameKey}`),
+  });
 }
 
 export function getRoundCompleteTitle(round: number): string {
-  switch (clampRoundNumber(round)) {
-    case 1:
-      return 'Tutorial Complete!';
-    case 2:
-      return 'Challenge Complete!';
-    case 3:
-      return 'Ice Round Complete!';
-    case 4:
-      return 'Path Round Complete!';
-    case 5:
-      return 'Master Round Complete!';
-    default:
-      return 'Round Complete!';
-  }
+  const key = ROUND_COMPLETE_KEYS[clampRoundNumber(round) as 1 | 2 | 3 | 4 | 5] ?? 'default';
+  return i18n.t(`rounds.complete.${key}`);
 }
 
 export function getRoundCompleteSubtitle(round: number): string {
   const roundNumber = clampRoundNumber(round);
-  const maxLevel = getMaxLevel(roundNumber);
-  const label = ROUND_NAMES.en[roundNumber as 1 | 2 | 3 | 4 | 5];
-  return `You cleared all ${maxLevel} levels in Round ${roundNumber} (${label}).`;
+  const nameKey = getRoundNameKey(roundNumber);
+  return i18n.t('rounds.completeSubtitle', {
+    n: roundNumber,
+    max: getMaxLevel(roundNumber),
+    name: i18n.t(`rounds.names.${nameKey}`),
+  });
 }
 
 export function getAdvanceRoundCtaLabel(round: number): string {
   const nextRound = getNextRound(round);
-  return `Continue to Round ${nextRound}`;
+  return i18n.t('rounds.advanceCta', { n: nextRound });
+}
+
+export function getPlayAgainLabel(round: number): string {
+  const roundNumber = clampRoundNumber(round);
+  if (roundNumber === 1) return i18n.t('rounds.playAgainRound1');
+  return i18n.t('rounds.playAgainRound', { n: roundNumber });
 }
 
 export function isValidDifficultyProfile(value: unknown): value is TDifficultyProfile {

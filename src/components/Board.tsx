@@ -1,5 +1,6 @@
 import React from 'react';
 import { Animated, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import type { TCell, TPosition } from '../../gameLogic';
 import { gameStyles } from '../theme';
 
@@ -14,22 +15,6 @@ type Props = {
   winFlashOpacity: Animated.Value;
 };
 
-function cellAccessibilityLabel(
-  cell: TCell,
-  isPlayer: boolean,
-  isGoal: boolean,
-  isPainted: boolean,
-  row: number,
-  col: number,
-): string {
-  if (isPlayer) return `Player at row ${row + 1} column ${col + 1}`;
-  if (isGoal) return `Goal at row ${row + 1} column ${col + 1}`;
-  if (cell === 'wall') return `Wall at row ${row + 1} column ${col + 1}`;
-  if (cell === 'ice') return `Ice tile at row ${row + 1} column ${col + 1}`;
-  if (isPainted) return `Trail at row ${row + 1} column ${col + 1}`;
-  return `Empty at row ${row + 1} column ${col + 1}`;
-}
-
 const Board: React.FC<Props> = ({
   grid,
   position,
@@ -40,6 +25,25 @@ const Board: React.FC<Props> = ({
   boardShakeX,
   winFlashOpacity,
 }) => {
+  const { t } = useTranslation();
+
+  const cellAccessibilityLabel = (
+    cell: TCell,
+    isPlayer: boolean,
+    isGoal: boolean,
+    isPainted: boolean,
+    row: number,
+    col: number,
+  ): string => {
+    const coords = { row: row + 1, col: col + 1 };
+    if (isPlayer) return t('board.playerAt', coords);
+    if (isGoal) return t('board.goalAt', coords);
+    if (cell === 'wall') return t('board.wallAt', coords);
+    if (cell === 'ice') return t('board.iceAt', coords);
+    if (isPainted) return t('board.trailAt', coords);
+    return t('board.emptyAt', coords);
+  };
+
   return (
     <Animated.View style={[gameStyles.board, { transform: [{ translateX: boardShakeX }] }]}>
       <Animated.View pointerEvents="none" style={[gameStyles.winFlashOverlay, { opacity: winFlashOpacity }]} />

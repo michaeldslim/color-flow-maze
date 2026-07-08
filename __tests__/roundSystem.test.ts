@@ -4,6 +4,7 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   removeItem: jest.fn(),
 }));
 
+import { initI18nForTests } from '../src/i18n';
 import {
   clampRoundNumber,
   getAdvanceRoundCtaLabel,
@@ -19,6 +20,10 @@ import {
   repairSavedProgress,
   type TSavedProgressV1,
 } from '../src/persistence';
+
+beforeAll(async () => {
+  await initI18nForTests('en');
+});
 
 describe('getRoundConfig', () => {
   it('returns tutorial profile for round 1', () => {
@@ -105,10 +110,15 @@ describe('getDifficultyProfile', () => {
 });
 
 describe('getRoundLabel', () => {
-  it('returns distinct labels per round', () => {
-    expect(getRoundLabel(1, 'en')).toBe('Round 1 — Tutorial');
-    expect(getRoundLabel(3, 'en')).toBe('Round 3 — Ice');
-    expect(getRoundLabel(5, 'ko')).toBe('라운드 5 — 마스터');
+  it('returns distinct labels per round in English', () => {
+    expect(getRoundLabel(1)).toBe('Round 1 — Tutorial');
+    expect(getRoundLabel(3)).toBe('Round 3 — Ice');
+  });
+
+  it('returns Korean labels when language is ko', async () => {
+    await initI18nForTests('ko');
+    expect(getRoundLabel(5)).toBe('라운드 5 — 마스터');
+    await initI18nForTests('en');
   });
 });
 

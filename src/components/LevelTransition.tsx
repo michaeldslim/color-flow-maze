@@ -1,5 +1,6 @@
 import React from 'react';
 import { Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { gameStyles } from '../theme';
 
 type Props = {
@@ -8,12 +9,14 @@ type Props = {
 };
 
 const LevelTransition: React.FC<Props> = ({ levelNumber, visible }) => {
+  const { t } = useTranslation();
+
   if (!visible) return null;
 
   return (
     <View style={gameStyles.levelTransitionOverlay} pointerEvents="none">
       <View style={gameStyles.levelTransitionBadge}>
-        <Text style={gameStyles.levelTransitionText}>Level {levelNumber}</Text>
+        <Text style={gameStyles.levelTransitionText}>{t('game.levelBadge', { n: levelNumber })}</Text>
       </View>
     </View>
   );

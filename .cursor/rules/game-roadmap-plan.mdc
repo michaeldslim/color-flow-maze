@@ -18,6 +18,7 @@ alwaysApply: false
 | Ice cells | Generated + rendered | ❄ marker only — **ice-stop gameplay not active** |
 | Trail | Painted blue on move | Visual only — **path-forcing not active** |
 | Rounds | **Phase 2 done** | R1→R2→…→R5→R2 순환 (`advanceRound`) |
+| i18n | **Phase 2.6 done** | KO/EN 전체 UI, AsyncStorage 영속 |
 | Intro UI | **Partial** | 컴팩트 1차 ✅ (`Intro.tsx`); 추가 폴리시 → Phase 6 |
 
 ---
@@ -142,6 +143,15 @@ New seeds                 New seeds
 - [x] 플레이 버튼 하단 고정 (footer)
 - [x] Legend 2열 그리드, 설정 단일 카드, 여백·폰트 축소
 
+### P2.6 Full-game i18n ✅
+- [x] `i18next` + `react-i18next` (`src/i18n/`)
+- [x] KO / EN locale files (`src/i18n/locales/ko.ts`, `en.ts`)
+- [x] 언어 선택 AsyncStorage 영속 (`color-flow-maze:language`)
+- [x] 공유 `LangToggle` — 인트로 화면만
+- [x] 인트로 → 게임 전환 시 언어 유지
+- [x] `gameInstructions.ts`, `difficulty.ts` 라운드 라벨 → `i18n.t()`
+- [x] `App`, `HUD`, `Controls`, `Board`, `RoundCompleteModal`, `LevelTransition` 번역
+
 ### Phase 2 files changed
 | File | Change |
 |------|--------|
@@ -152,6 +162,7 @@ New seeds                 New seeds
 | `src/components/RoundCompleteModal.tsx` | Per-round CTA labels |
 | `src/gameInstructions.ts` | R1–R5별 안내 + legend |
 | `src/screens/Intro.tsx` | Round별 legend / mechanic hints |
+| `src/i18n/*` | i18next setup, KO/EN locales, `LangToggle` |
 | `__tests__/roundSystem.test.ts` | Cycle + profile tests |
 
 ---
@@ -237,10 +248,11 @@ Intro 컴팩트 1차(Phase 2.5) 이후, **나중에 더 하고 싶다면**:
 
 1. ~~Phase 1 UI refactor~~ ✅
 2. ~~5-round cycle + profiles (Phase 2)~~ ✅
-3. **Phase 3** — Ice stops gameplay (R3, R5)
-4. **Phase 4** — Path forcing gameplay (R4, R5)
-5. **Phase 5 backlog** as time allows
-6. **Phase 6** — Intro UI 추가 폴리시 (optional)
+3. ~~Full-game i18n (Phase 2.6)~~ ✅
+4. **Phase 3** — Ice stops gameplay (R3, R5)
+5. **Phase 4** — Path forcing gameplay (R4, R5)
+6. **Phase 5 backlog** as time allows
+7. **Phase 6** — Intro UI 추가 폴리시 (optional)
 
 ---
 
@@ -250,6 +262,7 @@ Intro 컴팩트 1차(Phase 2.5) 이후, **나중에 더 하고 싶다면**:
 |-------|----------------|
 | 1 UI ✅ | `App.tsx`, `src/components/*`, `src/theme.ts`, `src/screens/Intro.tsx` |
 | 2 Rounds ✅ | `src/constants.ts`, `src/difficulty.ts`, `src/useGame.ts`, `src/persistence.ts` |
+| 2.6 i18n ✅ | `src/i18n/*`, `src/components/LangToggle.tsx`, `src/gameInstructions.ts`, UI components |
 | 3 Ice | `gameLogic.ts`, `src/useGame.ts`, `__tests__/gameLogic.test.ts` |
 | 4 Path | `gameLogic.ts`, `src/useGame.ts`, `src/components/Board.tsx`, `src/theme.ts` |
 | 5 Backlog | varies |
@@ -286,4 +299,5 @@ Intro 컴팩트 1차(Phase 2.5) 이후, **나중에 더 하고 싶다면**:
 ### Global
 - [x] Progress persists `roundNumber` across sessions
 - [x] `roundsCompleted` increments on each round clear
+- [x] KO/EN language persists across intro and game (`Phase 2.6`)
 - [ ] All generated levels remain solvable (BFS test in CI)

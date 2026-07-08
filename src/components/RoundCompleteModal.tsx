@@ -1,8 +1,10 @@
 import React from 'react';
 import { Modal, Pressable, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import {
   getAdvanceRoundCtaLabel,
   getMaxLevel,
+  getPlayAgainLabel,
   getRoundCompleteSubtitle,
   getRoundCompleteTitle,
   getRoundLabel,
@@ -28,14 +30,14 @@ const RoundCompleteModal: React.FC<Props> = ({
   onPlayAgain,
   onBackToIntro,
 }) => {
+  const { t } = useTranslation();
   const normalizedRound = clampRoundNumber(roundNumber);
   const maxLevel = getMaxLevel(normalizedRound);
   const isCycleComplete = normalizedRound >= MAX_ROUND;
   const title = getRoundCompleteTitle(normalizedRound);
   const subtitle = getRoundCompleteSubtitle(normalizedRound);
   const advanceLabel = getAdvanceRoundCtaLabel(normalizedRound);
-  const playAgainLabel =
-    normalizedRound === 1 ? 'Play Again (Round 1)' : `Play Again (Round ${normalizedRound})`;
+  const playAgainLabel = getPlayAgainLabel(normalizedRound);
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onBackToIntro}>
@@ -43,11 +45,11 @@ const RoundCompleteModal: React.FC<Props> = ({
         <View style={gameStyles.modalCard} accessibilityViewIsModal>
           <Text style={gameStyles.modalTitle}>{title}</Text>
           <Text style={gameStyles.modalSubtitle}>{subtitle}</Text>
-          <Text style={gameStyles.modalRoundBadge}>{getRoundLabel(normalizedRound, 'en')}</Text>
+          <Text style={gameStyles.modalRoundBadge}>{getRoundLabel(normalizedRound)}</Text>
 
           <View style={gameStyles.modalStatsRow}>
-            <Text style={gameStyles.modalStat}>Rounds finished: {roundsCompleted}</Text>
-            <Text style={gameStyles.modalStat}>Levels cleared: {maxLevel}</Text>
+            <Text style={gameStyles.modalStat}>{t('rounds.roundsFinished', { count: roundsCompleted })}</Text>
+            <Text style={gameStyles.modalStat}>{t('rounds.levelsCleared', { count: maxLevel })}</Text>
           </View>
 
           <Pressable
@@ -68,17 +70,15 @@ const RoundCompleteModal: React.FC<Props> = ({
             <Text style={gameStyles.modalSecondaryButtonText}>{playAgainLabel}</Text>
           </Pressable>
 
-          {isCycleComplete ? (
-            <Text style={gameStyles.modalCycleHint}>Full cycle complete — back to Round 2.</Text>
-          ) : null}
+          {isCycleComplete ? <Text style={gameStyles.modalCycleHint}>{t('rounds.cycleHint')}</Text> : null}
 
           <Pressable
             onPress={onBackToIntro}
             accessibilityRole="button"
-            accessibilityLabel="Back to main menu"
+            accessibilityLabel={t('rounds.mainMenu')}
             style={({ pressed }) => [gameStyles.modalTertiaryButton, pressed && gameStyles.buttonPressed]}
           >
-            <Text style={gameStyles.modalTertiaryButtonText}>Main Menu</Text>
+            <Text style={gameStyles.modalTertiaryButtonText}>{t('rounds.mainMenu')}</Text>
           </Pressable>
         </View>
       </View>

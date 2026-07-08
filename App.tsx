@@ -3,8 +3,10 @@ import { setAudioModeAsync, useAudioPlayer } from 'expo-audio';
 import Fireworks from './Fireworks';
 import * as Haptics from 'expo-haptics';
 import React, { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import useGame from './src/useGame';
 import { getRoundCompleteTitle } from './src/difficulty';
+import { initI18n } from './src/i18n';
 import {
   ActivityIndicator,
   Animated,
@@ -26,6 +28,7 @@ import { gameStyles } from './src/theme';
 import { type TDirection, type TGameStatus } from './gameLogic';
 
 function AppContent() {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const bottomInset = Math.max(insets.bottom, Platform.OS === 'android' ? 24 : 12) + 12;
   const topPadding = Math.max(insets.top, Platform.OS === 'android' ? (RNStatusBar.currentHeight ?? 0) : 0);
@@ -288,15 +291,15 @@ function AppContent() {
   const headerText = gameCompleted
     ? getRoundCompleteTitle(roundNumber)
     : status === 'won'
-      ? 'Stage Clear!'
+      ? t('game.stageClear')
       : status === 'lost'
         ? lossReason === 'moves'
-          ? 'Out of moves — tap Try Again'
-          : 'Time up — tap Try Again'
-        : 'Use the D-pad';
+          ? t('game.outOfMoves')
+          : t('game.timeUp')
+        : t('game.useDpad');
 
   const isLost = status === 'lost';
-  const nextLabel = isLost ? 'Try Again' : 'Next Level';
+  const nextLabel = isLost ? t('game.tryAgain') : t('game.nextLevel');
   const nextDisabled = !isLost && status !== 'won';
   const handleNextAction = () => {
     if (isLost) {
@@ -314,7 +317,7 @@ function AppContent() {
       <SafeAreaView style={[gameStyles.safeArea, { paddingTop: appliedTopPadding }]}>
         <View style={[gameStyles.container, gameStyles.loadingContainer]}>
           <ActivityIndicator size="large" color="#ffffff" />
-          <Text style={gameStyles.subtitle}>Loading progress...</Text>
+          <Text style={gameStyles.subtitle}>{t('app.loading')}</Text>
         </View>
       </SafeAreaView>
     );
@@ -342,7 +345,7 @@ function AppContent() {
     <SafeAreaView style={[gameStyles.safeArea, { paddingTop: appliedTopPadding, paddingBottom: bottomInset }]}>
       <View style={gameStyles.container}>
         <HUD
-          title="Color Flow Maze"
+          title={t('app.title')}
           subtitle={headerText}
           levelNumber={levelNumber}
           maxLevel={maxLevel}
@@ -404,6 +407,24 @@ function AppContent() {
 }
 
 export default function App() {
+  const [i18nReady, setI18nReady] = useState(false);
+
+  useEffect(() => {
+    void initI18n().then(() => setI18nReady(true));
+  }, []);
+
+  if (!i18nReady) {
+    return (
+      <SafeAreaProvider>
+        <SafeAreaView style={gameStyles.safeArea}>
+          <View style={[gameStyles.container, gameStyles.loadingContainer]}>
+            <ActivityIndicator size="large" color="#ffffff" />
+          </View>
+        </SafeAreaView>
+      </SafeAreaProvider>
+    );
+  }
+
   return (
     <SafeAreaProvider>
       <AppContent />

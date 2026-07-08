@@ -1,5 +1,6 @@
 import React from 'react';
 import { Animated, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { gameStyles } from '../theme';
 
 type Props = {
@@ -31,13 +32,14 @@ const HUD: React.FC<Props> = ({
   isTimerCritical,
   timerPulse,
 }) => {
+  const { t } = useTranslation();
   const movesRemaining = Math.max(0, moveLimit - movesUsed);
   const progress = Math.min(1, levelNumber / maxLevel);
   const isCompactHud = moveLimitEnabled && timerEnabled;
 
   const renderTimer = () => (
     <Animated.Text
-      accessibilityLabel={`${secondsLeft} seconds remaining`}
+      accessibilityLabel={t('hud.timeA11y', { seconds: secondsLeft })}
       style={[
         gameStyles.hudText,
         isCompactHud && gameStyles.hudTextCompact,
@@ -52,7 +54,7 @@ const HUD: React.FC<Props> = ({
         },
       ]}
     >
-      Time: {secondsLeft}s
+      {t('hud.time', { seconds: secondsLeft })}
     </Animated.Text>
   );
 
@@ -65,15 +67,18 @@ const HUD: React.FC<Props> = ({
 
       <View style={gameStyles.hudContainer}>
         <View style={[gameStyles.hudRow, isCompactHud && gameStyles.hudRowCompact]}>
-          <Text style={statTextStyle} accessibilityLabel={`Level ${levelNumber} of ${maxLevel}`}>
-            Level: {levelNumber}/{maxLevel}
+          <Text
+            style={statTextStyle}
+            accessibilityLabel={t('hud.levelA11y', { current: levelNumber, max: maxLevel })}
+          >
+            {t('hud.level', { current: levelNumber, max: maxLevel })}
           </Text>
           {moveLimitEnabled ? (
             <Text
               style={statTextStyle}
-              accessibilityLabel={`${movesRemaining} moves remaining out of ${moveLimit}`}
+              accessibilityLabel={t('hud.movesA11y', { remaining: movesRemaining, limit: moveLimit })}
             >
-              Moves: {movesRemaining}/{moveLimit}
+              {t('hud.moves', { remaining: movesRemaining, limit: moveLimit })}
             </Text>
           ) : null}
           {timerEnabled ? renderTimer() : null}

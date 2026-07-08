@@ -1,5 +1,6 @@
 import React from 'react';
 import { Pressable, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import type { TDirection } from '../../gameLogic';
 import { gameStyles } from '../theme';
 
@@ -19,18 +20,18 @@ type Props = {
   nextHighlighted?: boolean;
 };
 
-const DIRECTION_LABELS: Record<TDirection, string> = {
-  up: 'Move up',
-  down: 'Move down',
-  left: 'Move left',
-  right: 'Move right',
-};
-
 const DIRECTION_ARROWS: Record<TDirection, string> = {
   up: '▲',
   down: '▼',
   left: '◀',
   right: '▶',
+};
+
+const DIRECTION_KEYS: Record<TDirection, 'moveUp' | 'moveDown' | 'moveLeft' | 'moveRight'> = {
+  up: 'moveUp',
+  down: 'moveDown',
+  left: 'moveLeft',
+  right: 'moveRight',
 };
 
 const Controls: React.FC<Props> = ({
@@ -48,12 +49,14 @@ const Controls: React.FC<Props> = ({
   nextLabel,
   nextHighlighted = false,
 }) => {
+  const { t } = useTranslation();
+
   const renderDpadButton = (direction: TDirection) => (
     <Pressable
       onPress={() => attemptMove(direction)}
       disabled={status !== 'playing'}
       accessibilityRole="button"
-      accessibilityLabel={DIRECTION_LABELS[direction]}
+      accessibilityLabel={t(`controls.${DIRECTION_KEYS[direction]}`)}
       style={({ pressed }) => [
         gameStyles.dpadButton,
         pressed && gameStyles.buttonPressed,
@@ -73,14 +76,14 @@ const Controls: React.FC<Props> = ({
         onPress={undo}
         disabled={undoDisabled}
         accessibilityRole="button"
-        accessibilityLabel={`Undo, ${undoCountRemaining} remaining`}
+        accessibilityLabel={t('controls.undoA11y', { count: undoCountRemaining })}
         style={({ pressed }) => [
           gameStyles.actionButton,
           undoDisabled && gameStyles.buttonDisabled,
           pressed && !undoDisabled && gameStyles.buttonPressed,
         ]}
       >
-        <Text style={gameStyles.buttonText}>Undo ({undoCountRemaining})</Text>
+        <Text style={gameStyles.buttonText}>{t('controls.undo', { count: undoCountRemaining })}</Text>
       </Pressable>,
     );
   }
@@ -89,7 +92,7 @@ const Controls: React.FC<Props> = ({
     <View key="reset" style={gameStyles.resetButtonWrap}>
       {showResetHintInline ? (
         <View style={gameStyles.resetHintBubble}>
-          <Text style={gameStyles.resetHintText}>Long press Reset to restart</Text>
+          <Text style={gameStyles.resetHintText}>{t('controls.resetHint')}</Text>
         </View>
       ) : null}
       <Pressable
@@ -97,10 +100,10 @@ const Controls: React.FC<Props> = ({
         onLongPress={handleResetLongPress}
         delayLongPress={500}
         accessibilityRole="button"
-        accessibilityLabel="Reset level. Long press to restart entire game."
+        accessibilityLabel={t('controls.resetA11y')}
         style={({ pressed }) => [gameStyles.actionButton, pressed && gameStyles.buttonPressed]}
       >
-        <Text style={gameStyles.buttonText}>Reset</Text>
+        <Text style={gameStyles.buttonText}>{t('controls.reset')}</Text>
       </Pressable>
     </View>,
   );

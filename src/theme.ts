@@ -39,6 +39,7 @@ export const gameStyles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 12,
     alignItems: 'center',
+    position: 'relative',
   },
   loadingContainer: {
     justifyContent: 'center',
@@ -694,6 +695,11 @@ export const introStyles = StyleSheet.create({
     borderWidth: 1,
     minWidth: 36,
     alignItems: 'center',
+  },
+  langChipCompact: {
+    paddingVertical: 3,
+    paddingHorizontal: 6,
+    minWidth: 32,
   },
   langChipActive: {
     backgroundColor: colors.accent,
