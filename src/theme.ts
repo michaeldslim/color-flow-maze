@@ -487,7 +487,7 @@ export const introStyles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'center',
-    minHeight: 32,
+    minHeight: 52,
     position: 'relative',
   },
   introHeaderCenter: {
@@ -683,15 +683,16 @@ export const introStyles = StyleSheet.create({
     fontWeight: '700',
   },
   langToggleWrap: {
-    flexDirection: 'row',
-    gap: 6,
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: 4,
   },
   langChip: {
-    paddingVertical: 5,
-    paddingHorizontal: 10,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
     borderRadius: 999,
     borderWidth: 1,
-    minWidth: 40,
+    minWidth: 36,
     alignItems: 'center',
   },
   langChipActive: {
