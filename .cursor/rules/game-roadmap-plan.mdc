@@ -17,7 +17,7 @@ alwaysApply: false
 | Undo | Round-aware ✅ | 5 in Round 1; hidden / 0 in Round 2+ |
 | Ice cells | Generated + rendered | ❄ marker only — **ice-stop gameplay not active** |
 | Trail | Painted blue on move | Visual only — **path-forcing not active** |
-| Rounds | **Phase 2 partial** | R1↔R2 flow done; **5-round cycle not built** |
+| Rounds | **Phase 2 done** | R1→R2→…→R5→R2 순환 (`advanceRound`) |
 | UI | **Phase 1 done** | `App.tsx` uses `Board`/`HUD`/`Controls`; shared `src/theme.ts` |
 
 ---
@@ -37,9 +37,9 @@ Trail visual only         Trail visual only         Trail visual only
 
 Round 4 — Path            Round 5 — Master          → Cycle
 ────────────────────      ─────────────────────     ─────────────────────
-Levels 1–50               Levels 1–50               Round 5 클리어 후
-+ Required trail cells    Ice stops + path forcing  Round 1으로 회귀
-(challenge base 유지)     (all mechanics)           (새 시드, 튜토리얼부터)
+Levels 1–50               Levels 1–50               R5 클리어 후
++ Required trail cells    Ice stops + path forcing  Round 2로 회귀
+(challenge base 유지)     (all mechanics)           (튜토리얼 제외 루프)
 New seeds                 New seeds
 ```
 
@@ -62,9 +62,9 @@ New seeds                 New seeds
 | Round 2 | **Continue to Round 3** / Play Again / Main Menu |
 | Round 3 | **Continue to Round 4** / Play Again / Main Menu |
 | Round 4 | **Continue to Round 5** / Play Again / Main Menu |
-| Round 5 | **Return to Round 1** / Play Again (R5) / Main Menu |
+| Round 5 | **Continue to Round 2** / Play Again (R5) / Main Menu |
 
-- `advanceRound()`: R1→R2→R3→R4→R5→**R1** (R5 이후 회귀)
+- `advanceRound()`: R1→R2→R3→R4→R5→**R2** (R5 이후 챌린지 루프)
 - `restartGame()`: 항상 Round 1, fresh seeds
 - `replayCurrentRound()`: 현재 라운드 재시작, fresh seeds
 - 각 라운드 전환 시 **새 시드** (맵 레이아웃 변경)
@@ -107,48 +107,47 @@ New seeds                 New seeds
 
 ---
 
-## Phase 2 — Round System ⚠️ PARTIAL
+## Phase 2 — Round System ✅ DONE
 
-**Done:** Round 1 (tutorial) ↔ Round 2 (challenge) 기본 프로필, persistence v2, completion modal.
+**Done:** R1→R2→R3→R4→R5→R2 순환, per-round configs, `advanceRound()`, completion modal CTAs, intro copy.
 
-**Remaining:** 5-round cycle, R3–R5 프로필, `advanceRound()` / R5→R1 회귀.
-
-### P2.1 Data model (`src/persistence.ts`) — partial ✅
+### P2.1 Data model (`src/persistence.ts`) ✅
 - [x] `TSavedProgress` schema v2: `roundNumber`, `roundsCompleted`, `difficultyProfile`
 - [x] v1 → v2 migration
-- [ ] `difficultyProfile` 확장: `tutorial` \| `challenge` \| `ice` \| `path` \| `master` (or derive from `roundNumber`)
-- [ ] `MAX_ROUND = 5` constant; clamp / migrate saves with `roundNumber > 5`
+- [x] `difficultyProfile`: `tutorial` \| `challenge` \| `ice` \| `path` \| `master`
+- [x] `MAX_ROUND = 5`; `repairSavedProgress()` clamps `roundNumber > 5`
 
-### P2.2 Difficulty profile (`src/difficulty.ts`) — partial ✅
-- [x] `getRoundConfig(round)` — R1 tutorial, R2+ challenge base
+### P2.2 Difficulty profile (`src/difficulty.ts`) ✅
+- [x] `getRoundConfig(round)` — R1–R5 profiles
 - [x] `getMaxLevel(round)` — R1: 10, R2+: 50
-- [ ] `TRoundMechanics { iceStops, requireTrailCoverage }` per round
-- [ ] R3: `iceStops: true`; R4: `requireTrailCoverage: true`; R5: both
-- [ ] `getNextRound(round)`: 5 → 1, else round + 1
-- [ ] `getRoundLabel()` — R3 Ice / R4 Path / R5 Master 라벨
+- [x] `TRoundMechanics { iceStops, requireTrailCoverage }` per round (config only)
+- [x] R3: `iceStops: true`; R4: `requireTrailCoverage: true`; R5: both
+- [x] `getNextRound(round)`: 5 → 2, else round + 1
+- [x] `getRoundLabel()` — R3 Ice / R4 Path / R5 Master
 
 ### P2.3 Challenge base (R2–R5 shared) ✅
 - [x] No undo, 45s timer, move limit enforced
 - [x] 50 levels, fresh seeds per round transition
 
-### P2.4 Round completion flow — partial ✅
+### P2.4 Round completion flow ✅
 - [x] Final level win → `RoundCompleteModal`
 - [x] `restartGame()` → Round 1
 - [x] `replayCurrentRound()` → same round, fresh seeds
-- [x] `startChallengeRound()` → Round 2 only
-- [ ] Replace / extend with `advanceRound()` for R2→R3→R4→R5→R1
-- [ ] Modal CTA: round별 "Continue to Round N" / R5 "Return to Round 1"
-- [ ] Round별 intro 안내 문구 (`gameInstructions.ts`)
+- [x] `advanceRound()` → R2→R3→R4→R5→R2
+- [x] Modal CTA: round별 "Continue to Round N" / R5 → Round 2
+- [x] Round별 intro 안내 문구 + legend (`gameInstructions.ts`)
 
-### Phase 2 files to touch (remaining)
+### Phase 2 files changed
 | File | Change |
 |------|--------|
 | `src/constants.ts` | `MAX_ROUND = 5` |
 | `src/difficulty.ts` | 5-round configs, mechanics flags, `getNextRound` |
-| `src/useGame.ts` | `advanceRound()`, R5→R1 cycle |
+| `src/persistence.ts` | Extended profiles, `repairSavedProgress` |
+| `src/useGame.ts` | `advanceRound()`, load clamp |
 | `src/components/RoundCompleteModal.tsx` | Per-round CTA labels |
-| `src/gameInstructions.ts` | R1–R5별 안내 |
+| `src/gameInstructions.ts` | R1–R5별 안내 + legend |
 | `src/screens/Intro.tsx` | Round별 legend / mechanic hints |
+| `__tests__/roundSystem.test.ts` | Cycle + profile tests |
 
 ---
 
@@ -216,11 +215,10 @@ New seeds                 New seeds
 ## Implementation Order (updated)
 
 1. ~~Phase 1 UI refactor~~ ✅
-2. ~~Round 1 / Round 2 base~~ ✅ (partial)
-3. **Phase 2 remainder** — 5-round cycle, `advanceRound`, modal CTAs, R3–R5 configs
-4. **Phase 3** — Ice stops (R3, R5)
-5. **Phase 4** — Path forcing (R4, R5)
-6. **Phase 5 backlog** as time allows
+2. ~~5-round cycle + profiles (Phase 2)~~ ✅
+3. **Phase 3** — Ice stops gameplay (R3, R5)
+4. **Phase 4** — Path forcing gameplay (R4, R5)
+5. **Phase 5 backlog** as time allows
 
 ---
 
@@ -229,7 +227,7 @@ New seeds                 New seeds
 | Phase | Primary files |
 |-------|----------------|
 | 1 UI ✅ | `App.tsx`, `src/components/*`, `src/theme.ts`, `src/screens/Intro.tsx` |
-| 2 Rounds (partial) | `src/constants.ts`, `src/difficulty.ts`, `src/useGame.ts`, `src/persistence.ts`, `RoundCompleteModal.tsx` |
+| 2 Rounds ✅ | `src/constants.ts`, `src/difficulty.ts`, `src/useGame.ts`, `src/persistence.ts`, `RoundCompleteModal.tsx` |
 | 3 Ice | `gameLogic.ts`, `src/useGame.ts`, `src/components/Board.tsx`, `__tests__/gameLogic.test.ts` |
 | 4 Path | `gameLogic.ts`, `src/useGame.ts`, `src/components/Board.tsx`, `src/theme.ts`, `__tests__/gameLogic.test.ts` |
 | 5 Backlog | varies |
@@ -244,23 +242,23 @@ New seeds                 New seeds
 
 ### Round 2 — Challenge
 - [x] 50 levels, no undo, 45s timer, move limit enforced
-- [ ] Completion offers Round 3 (not yet — only R2 CTA exists)
+- [x] Completion offers Round 3 via `advanceRound()`
 
 ### Round 3 — Ice
-- [ ] Ice stops active; overshoot on non-ice shortcuts fails
-- [ ] 50 levels, challenge base rules
-- [ ] Completion offers Round 4
+- [ ] Ice stops active *(Phase 3 gameplay)*
+- [x] 50 levels, challenge base rules (config)
+- [x] Completion offers Round 4
 
 ### Round 4 — Path
-- [ ] Required trail cells enforced for win
+- [ ] Required trail cells enforced *(Phase 4 gameplay)*
 - [ ] Gold overlay on unpainted required cells
-- [ ] 50 levels, challenge base rules (no ice)
-- [ ] Completion offers Round 5
+- [x] 50 levels, challenge base rules (config)
+- [x] Completion offers Round 5
 
 ### Round 5 — Master
-- [ ] Ice stops + path forcing combined
-- [ ] 50 levels, all challenge rules
-- [ ] Completion cycles to Round 1
+- [ ] Ice stops + path forcing combined *(Phase 3+4 gameplay)*
+- [x] 50 levels, all challenge rules (config)
+- [x] Completion cycles to Round 2
 
 ### Global
 - [ ] All generated levels remain solvable (BFS test in CI)
