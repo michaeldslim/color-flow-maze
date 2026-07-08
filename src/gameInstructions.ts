@@ -1,22 +1,32 @@
 import { colors } from './theme';
 
-export const ROUND_NUMBER = 1;
-
 export const gameInstructions = {
   ko: {
     title: '플레이 방법',
-    roundLabel: '라운드 1 — 튜토리얼',
-    items: [
-      '- 방향 버튼(▲▼◀▶)을 누르세요',
-      '- 벽에 부딪힐 때까지 미끄러집니다',
-      '- 오렌지색 칸에 "멈춰야" 승리합니다',
-      '- 제한 시간이 끝나면 패배합니다',
-      '- 설정에서 이동 횟수 제한을 켤 수 있습니다',
-      '- Undo로 최대 5번 되돌릴 수 있습니다',
-      '- 패배 시 Try Again 또는 Reset으로 다시 시도하세요',
-      '- Reset을 길게 누르면 게임이 처음부터 다시 시작됩니다',
-      '- 50레벨을 클리어하면 게임을 완료합니다',
-    ],
+    items: {
+      tutorial: [
+        '- 방향 버튼(▲▼◀▶)을 누르세요',
+        '- 벽에 부딪힐 때까지 미끄러집니다',
+        '- 오렌지색 칸에 "멈춰야" 승리합니다',
+        '- 제한 시간 없이 편하게 연습하세요',
+        '- 설정에서 이동 횟수 제한을 켤 수 있습니다',
+        '- Undo로 최대 5번 되돌릴 수 있습니다',
+        '- 패배 시 Try Again 또는 Reset으로 다시 시도하세요',
+        '- Reset을 길게 누르면 게임이 처음부터 다시 시작됩니다',
+        '- 10레벨을 클리어하면 챌린지 라운드가 열립니다',
+      ],
+      challenge: [
+        '- 방향 버튼(▲▼◀▶)을 누르세요',
+        '- 벽에 부딪힐 때까지 미끄러집니다',
+        '- 오렌지색 칸에 "멈춰야" 승리합니다',
+        '- 제한 시간이 끝나면 패배합니다',
+        '- 이동 횟수 제한이 적용됩니다',
+        '- Undo 없음 — 신중하게 이동하세요',
+        '- 패배 시 Try Again 또는 Reset으로 다시 시도하세요',
+        '- Reset을 길게 누르면 라운드 1부터 다시 시작됩니다',
+        '- 50레벨을 클리어하면 라운드를 완료합니다',
+      ],
+    },
     legendTitle: '타일 설명',
     legend: [
       { color: colors.cellStart, label: '시작 (플레이어)' },
@@ -34,18 +44,30 @@ export const gameInstructions = {
   },
   en: {
     title: 'How to play',
-    roundLabel: 'Round 1 — Tutorial',
-    items: [
-      '- Press the arrow buttons (▲▼◀▶)',
-      '- You slide until you hit a wall',
-      '- You win only if you STOP on the orange tile',
-      '- Running out of time ends the level',
-      '- Optional: enable move limit in settings below',
-      '- Undo up to 5 times per level',
-      '- On loss, tap Try Again or Reset to retry',
-      '- Long-press Reset to restart the whole game',
-      '- Beat Level 50 to finish the game',
-    ],
+    items: {
+      tutorial: [
+        '- Press the arrow buttons (▲▼◀▶)',
+        '- You slide until you hit a wall',
+        '- You win only if you STOP on the orange tile',
+        '- No time limit — learn at your own pace',
+        '- Optional: enable move limit in settings below',
+        '- Undo up to 5 times per level',
+        '- On loss, tap Try Again or Reset to retry',
+        '- Long-press Reset to restart the whole game',
+        '- Beat Level 10 to unlock the Challenge Round',
+      ],
+      challenge: [
+        '- Press the arrow buttons (▲▼◀▶)',
+        '- You slide until you hit a wall',
+        '- You win only if you STOP on the orange tile',
+        '- Running out of time ends the level',
+        '- Move limit is enforced each level',
+        '- No undo — plan your moves carefully',
+        '- On loss, tap Try Again or Reset to retry',
+        '- Long-press Reset to restart from Round 1',
+        '- Beat Level 50 to complete the round',
+      ],
+    },
     legendTitle: 'Tile legend',
     legend: [
       { color: colors.cellStart, label: 'Start (player)' },

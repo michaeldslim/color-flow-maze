@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { type TPosition, type TGameStatus } from '../gameLogic';
+import { getDifficultyProfile, type TDifficultyProfile } from './difficulty';
 
 export type TScreen = 'intro' | 'game';
 
@@ -12,8 +13,20 @@ export type TSavedInLevelProgress = {
   trail: boolean[][];
 };
 
+export type TSavedProgressV1 = {
+  schemaVersion: 1;
+  screen: TScreen;
+  levelNumber: number;
+  levelSeeds: number[];
+  gameCompleted: boolean;
+  inLevelProgress?: TSavedInLevelProgress | null;
+};
+
 export type TSavedProgress = {
-  schemaVersion: number;
+  schemaVersion: 2;
+  roundNumber: number;
+  roundsCompleted: number;
+  difficultyProfile: TDifficultyProfile;
   screen: TScreen;
   levelNumber: number;
   levelSeeds: number[];
@@ -22,7 +35,7 @@ export type TSavedProgress = {
 };
 
 export const PROGRESS_STORAGE_KEY = 'color-flow-maze:progress:v1';
-export const PROGRESS_SCHEMA_VERSION = 1;
+export const PROGRESS_SCHEMA_VERSION = 2;
 
 function isValidSavedInLevelProgress(value: unknown): value is TSavedInLevelProgress {
   if (!value || typeof value !== 'object') return false;
@@ -54,12 +67,12 @@ function isValidSavedInLevelProgress(value: unknown): value is TSavedInLevelProg
   return true;
 }
 
-function isValidSavedProgress(value: unknown): value is TSavedProgress {
+function isValidSavedProgressV1(value: unknown): value is TSavedProgressV1 {
   if (!value || typeof value !== 'object') return false;
 
-  const candidate = value as Partial<TSavedProgress>;
+  const candidate = value as Partial<TSavedProgressV1>;
 
-  if (candidate.schemaVersion !== PROGRESS_SCHEMA_VERSION) return false;
+  if (candidate.schemaVersion !== 1) return false;
   if (candidate.screen !== 'intro' && candidate.screen !== 'game') return false;
   if (typeof candidate.levelNumber !== 'number' || !Number.isInteger(candidate.levelNumber)) return false;
   if (!Array.isArray(candidate.levelSeeds) || candidate.levelSeeds.length < candidate.levelNumber) return false;
@@ -76,13 +89,61 @@ function isValidSavedProgress(value: unknown): value is TSavedProgress {
   return true;
 }
 
+function isValidSavedProgress(value: unknown): value is TSavedProgress {
+  if (!value || typeof value !== 'object') return false;
+
+  const candidate = value as Partial<TSavedProgress>;
+
+  if (candidate.schemaVersion !== PROGRESS_SCHEMA_VERSION) return false;
+  if (typeof candidate.roundNumber !== 'number' || !Number.isInteger(candidate.roundNumber) || candidate.roundNumber < 1) {
+    return false;
+  }
+  if (typeof candidate.roundsCompleted !== 'number' || !Number.isInteger(candidate.roundsCompleted) || candidate.roundsCompleted < 0) {
+    return false;
+  }
+  if (candidate.difficultyProfile !== 'tutorial' && candidate.difficultyProfile !== 'challenge') return false;
+  if (candidate.screen !== 'intro' && candidate.screen !== 'game') return false;
+  if (typeof candidate.levelNumber !== 'number' || !Number.isInteger(candidate.levelNumber)) return false;
+  if (!Array.isArray(candidate.levelSeeds) || candidate.levelSeeds.length < candidate.levelNumber) return false;
+  if (candidate.levelSeeds.some((seed) => typeof seed !== 'number' || !Number.isInteger(seed))) return false;
+  if (typeof candidate.gameCompleted !== 'boolean') return false;
+  if (
+    candidate.inLevelProgress !== undefined &&
+    candidate.inLevelProgress !== null &&
+    !isValidSavedInLevelProgress(candidate.inLevelProgress)
+  ) {
+    return false;
+  }
+
+  return true;
+}
+
+export function migrateV1ToV2(saved: TSavedProgressV1): TSavedProgress {
+  return {
+    schemaVersion: 2,
+    roundNumber: 1,
+    roundsCompleted: saved.gameCompleted ? 1 : 0,
+    difficultyProfile: 'tutorial',
+    screen: saved.screen,
+    levelNumber: saved.levelNumber,
+    levelSeeds: saved.levelSeeds,
+    gameCompleted: saved.gameCompleted,
+    inLevelProgress: saved.inLevelProgress,
+  };
+}
+
+export function normalizeSavedProgress(value: unknown): TSavedProgress | null {
+  if (isValidSavedProgress(value)) return value;
+  if (isValidSavedProgressV1(value)) return migrateV1ToV2(value);
+  return null;
+}
+
 export async function loadSavedProgress(): Promise<TSavedProgress | null> {
   try {
     const raw = await AsyncStorage.getItem(PROGRESS_STORAGE_KEY);
     if (!raw) return null;
     const parsed: unknown = JSON.parse(raw);
-    if (!isValidSavedProgress(parsed)) return null;
-    return parsed;
+    return normalizeSavedProgress(parsed);
   } catch {
     return null;
   }

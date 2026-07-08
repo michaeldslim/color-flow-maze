@@ -4,7 +4,6 @@ import Fireworks from './Fireworks';
 import * as Haptics from 'expo-haptics';
 import React, { useEffect, useRef, useState } from 'react';
 import useGame from './src/useGame';
-import { MAX_LEVEL, UNDO_LIMIT, LEVEL_TIME_SECONDS, TIMER_ENABLED } from './src/constants';
 import {
   ActivityIndicator,
   Animated,
@@ -20,6 +19,7 @@ import Board from './src/components/Board';
 import HUD from './src/components/HUD';
 import Controls from './src/components/Controls';
 import LevelTransition from './src/components/LevelTransition';
+import RoundCompleteModal from './src/components/RoundCompleteModal';
 import { useSoundEnabled, useMoveLimitEnabled } from './src/settings';
 import { gameStyles } from './src/theme';
 import { type TDirection, type TGameStatus } from './gameLogic';
@@ -32,11 +32,15 @@ function AppContent() {
   const appliedTopPadding = Math.max(topPadding - SHIFT_UP, 0);
 
   const { soundEnabled, toggleSound } = useSoundEnabled();
-  const { moveLimitEnabled, toggleMoveLimit } = useMoveLimitEnabled();
+  const { moveLimitEnabled: moveLimitSettingEnabled, toggleMoveLimit } = useMoveLimitEnabled();
 
   const {
     screen,
     hasResumeProgress,
+    roundNumber,
+    roundsCompleted,
+    roundConfig,
+    moveLimitEnabled,
     level,
     levelNumber,
     gameCompleted,
@@ -52,13 +56,17 @@ function AppContent() {
     reset,
     newLevel,
     restartGame,
+    replayCurrentRound,
+    startChallengeRound,
     continueGame,
     startNewGame,
+    backToIntro,
     undo,
     attemptMove,
-  } = useGame({ moveLimitEnabled });
+  } = useGame({ moveLimitEnabled: moveLimitSettingEnabled });
 
   const { grid, goal, moveLimit } = level;
+  const { undoLimit, timerEnabled, showUndo, timerSeconds, maxLevel } = roundConfig;
 
   const [showFireworks, setShowFireworks] = useState<boolean>(false);
   const [showResetHintInline, setShowResetHintInline] = useState<boolean>(false);
@@ -74,7 +82,7 @@ function AppContent() {
   const goalPulse = useRef(new Animated.Value(0)).current;
   const timerPulse = useRef(new Animated.Value(0)).current;
   const winFlashOpacity = useRef(new Animated.Value(0)).current;
-  const lastTimerWarningHapticRef = useRef<number>(LEVEL_TIME_SECONDS + 1);
+  const lastTimerWarningHapticRef = useRef<number>(timerSeconds + 1);
   const hasShownResetHintInlineRef = useRef<boolean>(false);
   const didTriggerResetLongPressRef = useRef<boolean>(false);
 
@@ -193,13 +201,13 @@ function AppContent() {
   }, []);
 
   useEffect(() => {
-    if (!TIMER_ENABLED) return;
+    if (!timerEnabled) return;
 
     const shouldWarn = screen === 'game' && status === 'playing' && secondsLeft > 0 && secondsLeft <= 10;
     if (!shouldWarn) {
       timerPulse.stopAnimation();
       timerPulse.setValue(0);
-      lastTimerWarningHapticRef.current = LEVEL_TIME_SECONDS + 1;
+      lastTimerWarningHapticRef.current = timerSeconds + 1;
       return;
     }
 
@@ -214,7 +222,7 @@ function AppContent() {
       lastTimerWarningHapticRef.current = secondsLeft;
       void Haptics.selectionAsync().catch(() => undefined);
     }
-  }, [screen, status, secondsLeft, timerPulse]);
+  }, [screen, status, secondsLeft, timerPulse, timerEnabled, timerSeconds]);
 
   useEffect(() => {
     if (gameCompleted && !prevGameCompletedRef.current) {
@@ -240,7 +248,7 @@ function AppContent() {
         winPlayer.play();
       }
 
-      if (levelNumber >= MAX_LEVEL && soundEnabled) {
+      if (levelNumber >= maxLevel && soundEnabled) {
         setTimeout(() => {
           congratsPlayer.seekTo(0);
           congratsPlayer.play();
@@ -259,7 +267,7 @@ function AppContent() {
     if (status !== 'won' || gameCompleted) return;
     const id = setTimeout(() => newLevel(), 3000);
     return () => clearTimeout(id);
-  }, [status, gameCompleted]);
+  }, [status, gameCompleted, newLevel]);
 
   const handleAttemptMove = (direction: TDirection) => {
     const result = attemptMove(direction);
@@ -277,7 +285,9 @@ function AppContent() {
   };
 
   const headerText = gameCompleted
-    ? 'You beat the game!'
+    ? roundNumber === 1
+      ? 'Tutorial complete!'
+      : 'Challenge complete!'
     : status === 'won'
       ? 'Stage Clear!'
       : status === 'lost'
@@ -287,13 +297,9 @@ function AppContent() {
         : 'Use the D-pad';
 
   const isLost = status === 'lost';
-  const nextLabel = gameCompleted ? 'Restart' : isLost ? 'Try Again' : 'Next Level';
-  const nextDisabled = !gameCompleted && !isLost && status !== 'won';
+  const nextLabel = isLost ? 'Try Again' : 'Next Level';
+  const nextDisabled = !isLost && status !== 'won';
   const handleNextAction = () => {
-    if (gameCompleted) {
-      restartGame();
-      return;
-    }
     if (isLost) {
       reset();
       return;
@@ -301,7 +307,7 @@ function AppContent() {
     newLevel();
   };
 
-  const isTimerWarning = TIMER_ENABLED && status === 'playing' && secondsLeft > 0 && secondsLeft <= 10;
+  const isTimerWarning = timerEnabled && status === 'playing' && secondsLeft > 0 && secondsLeft <= 10;
   const isTimerCritical = isTimerWarning && secondsLeft <= 5;
 
   if (!isProgressLoaded) {
@@ -320,13 +326,15 @@ function AppContent() {
       <Intro
         hasResumeProgress={hasResumeProgress}
         levelNumber={levelNumber}
+        roundNumber={roundNumber}
         continueGame={continueGame}
         startNewGame={startNewGame}
         bottomInset={bottomInset}
         soundEnabled={soundEnabled}
         onToggleSound={toggleSound}
-        moveLimitEnabled={moveLimitEnabled}
+        moveLimitEnabled={moveLimitSettingEnabled}
         onToggleMoveLimit={toggleMoveLimit}
+        showMoveLimitToggle={roundNumber === 1}
       />
     );
   }
@@ -338,11 +346,11 @@ function AppContent() {
           title="Color Flow Maze"
           subtitle={headerText}
           levelNumber={levelNumber}
-          maxLevel={MAX_LEVEL}
+          maxLevel={maxLevel}
           movesUsed={movesUsed}
           moveLimit={moveLimit}
           moveLimitEnabled={moveLimitEnabled}
-          timerEnabled={TIMER_ENABLED}
+          timerEnabled={timerEnabled}
           secondsLeft={secondsLeft}
           isTimerWarning={isTimerWarning}
           isTimerCritical={isTimerCritical}
@@ -369,9 +377,9 @@ function AppContent() {
           attemptMove={handleAttemptMove}
           status={status}
           undo={undo}
-          undoDisabled={(!isLost && status !== 'playing') || history.length === 0 || undosUsed >= UNDO_LIMIT}
-          undoCountRemaining={Math.max(0, UNDO_LIMIT - undosUsed)}
-          showUndo
+          undoDisabled={(!isLost && status !== 'playing') || history.length === 0 || undosUsed >= undoLimit}
+          undoCountRemaining={Math.max(0, undoLimit - undosUsed)}
+          showUndo={showUndo}
           handleResetPress={handleResetPress}
           handleResetLongPress={handleResetLongPress}
           showResetHintInline={showResetHintInline}
@@ -383,6 +391,15 @@ function AppContent() {
 
         <StatusBar style="light" />
         <Fireworks visible={showFireworks} />
+        <RoundCompleteModal
+          visible={gameCompleted}
+          roundNumber={roundNumber}
+          roundsCompleted={roundsCompleted}
+          onStartChallenge={startChallengeRound}
+          onPlayAgainTutorial={restartGame}
+          onPlayAgainChallenge={replayCurrentRound}
+          onBackToIntro={backToIntro}
+        />
       </View>
     </SafeAreaView>
   );

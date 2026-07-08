@@ -15,7 +15,7 @@ import {
   type TPosition,
 } from '../gameLogic';
 import { loadSavedProgress, saveSavedProgress, type TSavedInLevelProgress, type TSavedProgress } from './persistence';
-import { MAX_LEVEL, UNDO_LIMIT, LEVEL_TIME_SECONDS, TIMER_ENABLED } from './constants';
+import { getDifficultyProfile, getMaxLevel, getRoundConfig } from './difficulty';
 
 export type TScreen = 'intro' | 'game';
 export type TLossReason = 'time' | 'moves' | null;
@@ -25,14 +25,21 @@ type UseGameOptions = {
 };
 
 export function useGame(options: UseGameOptions = {}) {
-  const moveLimitEnabled = options.moveLimitEnabled ?? false;
+  const moveLimitSettingEnabled = options.moveLimitEnabled ?? false;
+
   const [screen, setScreen] = useState<TScreen>('intro');
   const [hasResumeProgress, setHasResumeProgress] = useState<boolean>(false);
 
+  const [roundNumber, setRoundNumber] = useState<number>(1);
+  const [roundsCompleted, setRoundsCompleted] = useState<number>(0);
   const [levelNumber, setLevelNumber] = useState<number>(1);
   const [levelSeeds, setLevelSeeds] = useState<number[]>(() => [Date.now() >>> 0]);
   const [gameCompleted, setGameCompleted] = useState<boolean>(false);
   const [isProgressLoaded, setIsProgressLoaded] = useState<boolean>(false);
+
+  const roundConfig = useMemo(() => getRoundConfig(roundNumber), [roundNumber]);
+  const moveLimitEnabled = roundConfig.enforceMoveLimit || (roundNumber === 1 && moveLimitSettingEnabled);
+  const levelTimeSeconds = roundConfig.timerSeconds;
 
   const currentSeed = levelSeeds[levelNumber - 1] ?? (Date.now() >>> 0);
   const level: TLevel = useMemo(() => generateLevel(levelNumber, currentSeed), [levelNumber, currentSeed]);
@@ -45,7 +52,7 @@ export function useGame(options: UseGameOptions = {}) {
   const [movesUsed, setMovesUsed] = useState<number>(0);
   const [status, setStatus] = useState<TGameStatus>('playing');
   const [undosUsed, setUndosUsed] = useState<number>(0);
-  const [secondsLeft, setSecondsLeft] = useState<number>(LEVEL_TIME_SECONDS);
+  const [secondsLeft, setSecondsLeft] = useState<number>(levelTimeSeconds);
   const [trail, setTrail] = useState<boolean[][]>(() => {
     const t = createTrail(rows, cols);
     t[start.row][start.col] = true;
@@ -66,12 +73,18 @@ export function useGame(options: UseGameOptions = {}) {
 
       if (cancelled) return;
 
+      const maxLevel = getMaxLevel(saved.roundNumber);
+      const levelNumber = Math.min(saved.levelNumber, maxLevel);
+      const gameCompleted = saved.gameCompleted || (saved.roundNumber === 1 && saved.levelNumber > maxLevel);
+
       setHasResumeProgress(
-        saved.screen === 'game' || saved.levelNumber > 1 || saved.gameCompleted || saved.inLevelProgress != null,
+        saved.screen === 'game' || levelNumber > 1 || gameCompleted || saved.inLevelProgress != null,
       );
+      setRoundNumber(saved.roundNumber);
+      setRoundsCompleted(saved.roundsCompleted);
       setLevelSeeds(saved.levelSeeds);
-      setLevelNumber(saved.levelNumber);
-      setGameCompleted(saved.gameCompleted);
+      setLevelNumber(levelNumber);
+      setGameCompleted(gameCompleted);
       setPendingInLevelRestore(saved.screen === 'game' ? saved.inLevelProgress ?? null : null);
 
       if (!cancelled) setIsProgressLoaded(true);
@@ -90,7 +103,10 @@ export function useGame(options: UseGameOptions = {}) {
 
     const saveProgress = async () => {
       const payload: TSavedProgress = {
-        schemaVersion: 1,
+        schemaVersion: 2,
+        roundNumber,
+        roundsCompleted,
+        difficultyProfile: getDifficultyProfile(roundNumber),
         screen,
         levelNumber,
         levelSeeds,
@@ -116,6 +132,8 @@ export function useGame(options: UseGameOptions = {}) {
     isProgressLoaded,
     pendingInLevelRestore,
     screen,
+    roundNumber,
+    roundsCompleted,
     levelNumber,
     levelSeeds,
     gameCompleted,
@@ -129,7 +147,7 @@ export function useGame(options: UseGameOptions = {}) {
   ]);
 
   useEffect(() => {
-    if (!TIMER_ENABLED) return;
+    if (!roundConfig.timerEnabled) return;
     if (gameCompleted) return;
     if (status !== 'playing') return;
     if (secondsLeft <= 0) return;
@@ -146,7 +164,7 @@ export function useGame(options: UseGameOptions = {}) {
     }, 1000);
 
     return () => clearInterval(id);
-  }, [status, secondsLeft, gameCompleted]);
+  }, [status, secondsLeft, gameCompleted, roundConfig.timerEnabled]);
 
   useEffect(() => {
     if (pendingInLevelRestore) {
@@ -159,8 +177,8 @@ export function useGame(options: UseGameOptions = {}) {
         setPosition(restoredPosition);
         setMovesUsed(Math.max(0, pendingInLevelRestore.movesUsed));
         setStatus(pendingInLevelRestore.status);
-        setUndosUsed(Math.min(UNDO_LIMIT, Math.max(0, pendingInLevelRestore.undosUsed)));
-        setSecondsLeft(Math.min(LEVEL_TIME_SECONDS, Math.max(0, pendingInLevelRestore.secondsLeft)));
+        setUndosUsed(Math.min(roundConfig.undoLimit, Math.max(0, pendingInLevelRestore.undosUsed)));
+        setSecondsLeft(Math.min(levelTimeSeconds, Math.max(0, pendingInLevelRestore.secondsLeft)));
         setHistory([]);
         setTrail(cloneTrail(pendingInLevelRestore.trail));
         setPendingInLevelRestore(null);
@@ -175,14 +193,14 @@ export function useGame(options: UseGameOptions = {}) {
     setStatus('playing');
     setLossReason(null);
     setUndosUsed(0);
-    setSecondsLeft(LEVEL_TIME_SECONDS);
+    setSecondsLeft(levelTimeSeconds);
     setHistory([]);
     setTrail(() => {
       const t = createTrail(rows, cols);
       t[start.row][start.col] = true;
       return t;
     });
-  }, [pendingInLevelRestore, levelNumber, rows, cols, start.row, start.col, grid]);
+  }, [pendingInLevelRestore, levelNumber, rows, cols, start.row, start.col, grid, roundConfig.undoLimit, levelTimeSeconds]);
 
   const pushHistory = (snapshot: TGameSnapshot) => {
     setHistory((prev) => [snapshot, ...prev].slice(0, 200));
@@ -194,7 +212,7 @@ export function useGame(options: UseGameOptions = {}) {
     setStatus('playing');
     setLossReason(null);
     setUndosUsed(0);
-    setSecondsLeft(LEVEL_TIME_SECONDS);
+    setSecondsLeft(levelTimeSeconds);
     setHistory([]);
     setTrail(() => {
       const t = createTrail(rows, cols);
@@ -204,7 +222,7 @@ export function useGame(options: UseGameOptions = {}) {
   };
 
   const newLevel = () => {
-    if (levelNumber >= MAX_LEVEL) return;
+    if (levelNumber >= roundConfig.maxLevel) return;
     setLevelSeeds((prev) => {
       if (prev[levelNumber]) return prev;
       const next = prev.slice();
@@ -216,11 +234,33 @@ export function useGame(options: UseGameOptions = {}) {
 
   const restartGame = () => {
     const seed = Date.now() >>> 0;
+    setRoundNumber(1);
     setGameCompleted(false);
     setLevelSeeds([seed]);
     setLevelNumber(1);
     setPendingInLevelRestore(null);
     setHasResumeProgress(true);
+  };
+
+  const replayCurrentRound = () => {
+    const seed = Date.now() >>> 0;
+    setGameCompleted(false);
+    setLevelSeeds([seed]);
+    setLevelNumber(1);
+    setPendingInLevelRestore(null);
+    setHasResumeProgress(true);
+    setScreen('game');
+  };
+
+  const startChallengeRound = () => {
+    const seed = Date.now() >>> 0;
+    setRoundNumber(2);
+    setGameCompleted(false);
+    setLevelSeeds([seed]);
+    setLevelNumber(1);
+    setPendingInLevelRestore(null);
+    setHasResumeProgress(true);
+    setScreen('game');
   };
 
   const continueGame = () => setScreen('game');
@@ -229,8 +269,10 @@ export function useGame(options: UseGameOptions = {}) {
     setScreen('game');
   };
 
+  const backToIntro = () => setScreen('intro');
+
   const undo = () => {
-    if (undosUsed >= UNDO_LIMIT) return;
+    if (undosUsed >= roundConfig.undoLimit) return;
     setHistory((prev) => {
       const [latest, ...rest] = prev;
       if (!latest) return prev;
@@ -246,18 +288,16 @@ export function useGame(options: UseGameOptions = {}) {
 
   const attemptMove = (direction: TDirection): { blocked: boolean; didWin?: boolean; newPosition?: TPosition } => {
     if (status !== 'playing') return { blocked: true };
-    if (TIMER_ENABLED && secondsLeft <= 0) return { blocked: true };
+    if (roundConfig.timerEnabled && secondsLeft <= 0) return { blocked: true };
 
     const { dr, dc } = directionVector(direction as TDirection);
 
-    // compute sliding destination using shared slide() logic (respects ice/stoppable cells)
     const dest = slide(grid, position, direction as TDirection);
     if (positionsEqual(dest, position)) return { blocked: true };
 
     pushHistory({ position, movesUsed, status, trail: cloneTrail(trail) });
 
     const nextTrail = cloneTrail(trail);
-    // mark all intermediate cells between position (exclusive) and dest (inclusive)
     let curMark = { ...position };
     while (!positionsEqual(curMark, dest)) {
       curMark = { row: curMark.row + dr, col: curMark.col + dc };
@@ -273,7 +313,10 @@ export function useGame(options: UseGameOptions = {}) {
 
     if (didWin) {
       setStatus('won');
-      if (levelNumber >= MAX_LEVEL) setGameCompleted(true);
+      if (levelNumber >= roundConfig.maxLevel) {
+        setGameCompleted(true);
+        setRoundsCompleted((r) => r + 1);
+      }
     } else if (moveLimitEnabled && newMovesUsed >= level.moveLimit) {
       setStatus('lost');
       setLossReason('moves');
@@ -286,6 +329,10 @@ export function useGame(options: UseGameOptions = {}) {
     screen,
     setScreen,
     hasResumeProgress,
+    roundNumber,
+    roundsCompleted,
+    roundConfig,
+    moveLimitEnabled,
     level,
     levelNumber,
     setLevelNumber,
@@ -312,8 +359,11 @@ export function useGame(options: UseGameOptions = {}) {
     reset,
     newLevel,
     restartGame,
+    replayCurrentRound,
+    startChallengeRound,
     continueGame,
     startNewGame,
+    backToIntro,
     undo,
     attemptMove,
   } as const;
