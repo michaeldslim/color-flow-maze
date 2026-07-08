@@ -9,6 +9,7 @@ import {
   clampRoundNumber,
   getAdvanceRoundCtaLabel,
   getDifficultyProfile,
+  getLevelTimerSeconds,
   getMaxLevel,
   getNextRound,
   getRoundConfig,
@@ -85,6 +86,23 @@ describe('round cycle helpers', () => {
   it('getAdvanceRoundCtaLabel reflects cycle', () => {
     expect(getAdvanceRoundCtaLabel(1)).toBe('Continue to Round 2');
     expect(getAdvanceRoundCtaLabel(5)).toBe('Continue to Round 2');
+  });
+});
+
+describe('getLevelTimerSeconds', () => {
+  it('returns round base timer for level 1 in challenge rounds', () => {
+    expect(getLevelTimerSeconds(2, 1)).toBe(60);
+    expect(getLevelTimerSeconds(5, 1)).toBe(45);
+  });
+
+  it('decreases timer every 4 levels in challenge rounds', () => {
+    expect(getLevelTimerSeconds(2, 5)).toBe(59);
+    expect(getLevelTimerSeconds(2, 9)).toBe(58);
+    expect(getLevelTimerSeconds(5, 5)).toBe(44);
+  });
+
+  it('returns tutorial timer when timer is disabled', () => {
+    expect(getLevelTimerSeconds(1, 10)).toBe(60);
   });
 });
 

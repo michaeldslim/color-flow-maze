@@ -12,8 +12,8 @@ alwaysApply: false
 |------|--------|-------|
 | Levels | Round-aware ✅ | Round 1: 10 levels; Round 2+: 50 levels |
 | Grid | 8×8 → 12×12 | Grows every 2 levels from L2 |
-| Move limit | Round-aware ✅ | Round 1: optional toggle; Round 2+: always enforced |
-| Timer | Round-aware ✅ | Off in Round 1; 60s in R2–R4; 45s in R5 |
+| Move limit | Round-aware ✅ | R1: optional toggle (10 moves); R2+: always 10 moves per level |
+| Timer | Round-aware ✅ | R1: off; R2–R4: 60s/level (−1 every 4 levels, min 30s); R5: 45s base |
 | Undo | Round-aware ✅ | 5 in Round 1; hidden / 0 in Round 2+ |
 | Ice cells | Generated + rendered | ❄ marker only — **ice-stop gameplay not active** |
 | Trail | Painted blue on move | Visual only — **path-forcing not active** |
@@ -127,7 +127,8 @@ New seeds                 New seeds
 - [x] `getRoundLabel()` — R3 Ice / R4 Path / R5 Master
 
 ### P2.3 Challenge base (R2–R5 shared) ✅
-- [x] No undo, move limit enforced
+- [x] No undo, move limit enforced (10 moves every level)
+- [x] Per-level timer: 60s in R2–R4, 45s in R5; −1s every 4 levels (min 30s)
 - [x] 60s timer (R2–R4); 45s timer (R5 master round)
 - [x] 50 levels, fresh seeds per round transition
 

@@ -42,7 +42,7 @@ const en = {
       '- Beat Level 10 to unlock Round 2',
     ],
     round2: [
-      '- 60-second timer and move limit enforced',
+      '- Timer starts at 60s per level (drops 1s every 4 levels), 10 moves per level',
       '- No undo — plan your moves carefully',
       '- Beat Level 50 to unlock Round 3 (Ice)',
       '- Long-press Reset to restart from Round 1',
@@ -58,7 +58,7 @@ const en = {
       '- Beat Level 50 to unlock Round 5 (Master)',
     ],
     round5: [
-      '- 45-second timer (shorter than Rounds 2–4)',
+      '- Timer starts at 45s per level (drops 1s every 4 levels)',
       '- Ice stops and required path rules combined',
       '- The hardest round in the cycle',
       '- Beat Level 50 to return to Round 2',

@@ -45,6 +45,7 @@ function AppContent() {
     roundsCompleted,
     roundConfig,
     moveLimitEnabled,
+    levelTimeSeconds,
     level,
     levelNumber,
     gameCompleted,
@@ -70,7 +71,7 @@ function AppContent() {
   } = useGame({ moveLimitEnabled: moveLimitSettingEnabled });
 
   const { grid, goal, moveLimit } = level;
-  const { undoLimit, timerEnabled, showUndo, timerSeconds, maxLevel } = roundConfig;
+  const { undoLimit, timerEnabled, showUndo, maxLevel } = roundConfig;
 
   const [showFireworks, setShowFireworks] = useState<boolean>(false);
   const [showResetHintInline, setShowResetHintInline] = useState<boolean>(false);
@@ -86,7 +87,7 @@ function AppContent() {
   const goalPulse = useRef(new Animated.Value(0)).current;
   const timerPulse = useRef(new Animated.Value(0)).current;
   const winFlashOpacity = useRef(new Animated.Value(0)).current;
-  const lastTimerWarningHapticRef = useRef<number>(timerSeconds + 1);
+  const lastTimerWarningHapticRef = useRef<number>(levelTimeSeconds + 1);
   const hasShownResetHintInlineRef = useRef<boolean>(false);
   const didTriggerResetLongPressRef = useRef<boolean>(false);
 
@@ -211,7 +212,7 @@ function AppContent() {
     if (!shouldWarn) {
       timerPulse.stopAnimation();
       timerPulse.setValue(0);
-      lastTimerWarningHapticRef.current = timerSeconds + 1;
+      lastTimerWarningHapticRef.current = levelTimeSeconds + 1;
       return;
     }
 
@@ -226,7 +227,7 @@ function AppContent() {
       lastTimerWarningHapticRef.current = secondsLeft;
       void Haptics.selectionAsync().catch(() => undefined);
     }
-  }, [screen, status, secondsLeft, timerPulse, timerEnabled, timerSeconds]);
+  }, [screen, status, secondsLeft, timerPulse, timerEnabled, levelTimeSeconds]);
 
   useEffect(() => {
     if (gameCompleted && !prevGameCompletedRef.current) {

@@ -206,7 +206,7 @@ export function minMovesToGoal(
 
 export function generateLevel(levelNumber: number, seed: number): TLevel {
   const size = Math.min(12, Math.max(8, 8 + Math.floor((levelNumber - 2) / 2)));
-  const moveLimit = Math.max(6, DEFAULT_MOVE_LIMIT - Math.floor((levelNumber - 1) / 4));
+  const moveLimit = DEFAULT_MOVE_LIMIT;
   const wallProbabilityBase =
     levelNumber <= 10
       ? 0.12 + (levelNumber - 1) * 0.009

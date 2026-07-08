@@ -22,6 +22,8 @@ export type TRoundConfig = {
 
 const CHALLENGE_TIMER_SECONDS = 60;
 const MASTER_TIMER_SECONDS = 45;
+const LEVEL_TIMER_STEP = 4;
+const MIN_LEVEL_TIMER_SECONDS = 30;
 
 const CHALLENGE_BASE = {
   undoLimit: 0,
@@ -80,6 +82,17 @@ export function getNextRound(round: number): number {
 
 export function getDifficultyProfile(round: number): TDifficultyProfile {
   return getRoundNameKey(round);
+}
+
+export function getLevelTimerSeconds(round: number, levelNumber: number): number {
+  const config = getRoundConfig(round);
+  if (!config.timerEnabled) return config.timerSeconds;
+
+  const normalizedLevel = Math.max(1, levelNumber);
+  return Math.max(
+    MIN_LEVEL_TIMER_SECONDS,
+    config.timerSeconds - Math.floor((normalizedLevel - 1) / LEVEL_TIMER_STEP),
+  );
 }
 
 export function getRoundConfig(round: number): TRoundConfig {

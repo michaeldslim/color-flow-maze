@@ -15,7 +15,7 @@ import {
   type TPosition,
 } from '../gameLogic';
 import { loadSavedProgress, saveSavedProgress, type TSavedInLevelProgress, type TSavedProgress } from './persistence';
-import { clampRoundNumber, getDifficultyProfile, getMaxLevel, getNextRound, getRoundConfig } from './difficulty';
+import { clampRoundNumber, getDifficultyProfile, getLevelTimerSeconds, getMaxLevel, getNextRound, getRoundConfig } from './difficulty';
 
 export type TScreen = 'intro' | 'game';
 export type TLossReason = 'time' | 'moves' | null;
@@ -39,7 +39,7 @@ export function useGame(options: UseGameOptions = {}) {
 
   const roundConfig = useMemo(() => getRoundConfig(roundNumber), [roundNumber]);
   const moveLimitEnabled = roundConfig.enforceMoveLimit || (roundNumber === 1 && moveLimitSettingEnabled);
-  const levelTimeSeconds = roundConfig.timerSeconds;
+  const levelTimeSeconds = getLevelTimerSeconds(roundNumber, levelNumber);
 
   const currentSeed = levelSeeds[levelNumber - 1] ?? (Date.now() >>> 0);
   const level: TLevel = useMemo(() => generateLevel(levelNumber, currentSeed), [levelNumber, currentSeed]);
@@ -338,6 +338,7 @@ export function useGame(options: UseGameOptions = {}) {
     roundsCompleted,
     roundConfig,
     moveLimitEnabled,
+    levelTimeSeconds,
     level,
     levelNumber,
     setLevelNumber,

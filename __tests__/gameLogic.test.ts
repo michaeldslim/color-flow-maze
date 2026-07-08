@@ -235,10 +235,10 @@ describe('generateLevel', () => {
     expect(result).not.toBeNull();
   });
 
-  it('move limit decreases for higher levels', () => {
-    const early = generateLevel(1, 42);
-    const late = generateLevel(20, 42);
-    expect(late.moveLimit).toBeLessThanOrEqual(early.moveLimit);
+  it('move limit stays at 10 for all levels', () => {
+    expect(generateLevel(1, 42).moveLimit).toBe(DEFAULT_MOVE_LIMIT);
+    expect(generateLevel(5, 42).moveLimit).toBe(DEFAULT_MOVE_LIMIT);
+    expect(generateLevel(20, 42).moveLimit).toBe(DEFAULT_MOVE_LIMIT);
   });
 
   it('grid grows for higher levels', () => {
