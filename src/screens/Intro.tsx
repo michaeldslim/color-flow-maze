@@ -3,12 +3,14 @@ import { StatusBar } from 'expo-status-bar';
 import { ScrollView, View, Text, Pressable, Platform } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar as RNStatusBar } from 'react-native';
-import { gameInstructions, ROUND_NUMBER } from '../gameInstructions';
+import { gameInstructions } from '../gameInstructions';
+import { getRoundLabel } from '../difficulty';
 import { introStyles } from '../theme';
 
 type Props = {
   hasResumeProgress: boolean;
   levelNumber: number;
+  roundNumber: number;
   continueGame: () => void;
   startNewGame: () => void;
   bottomInset: number;
@@ -16,11 +18,13 @@ type Props = {
   onToggleSound: () => void;
   moveLimitEnabled: boolean;
   onToggleMoveLimit: () => void;
+  showMoveLimitToggle: boolean;
 };
 
 export default function Intro({
   hasResumeProgress,
   levelNumber,
+  roundNumber,
   continueGame,
   startNewGame,
   bottomInset,
@@ -28,6 +32,7 @@ export default function Intro({
   onToggleSound,
   moveLimitEnabled,
   onToggleMoveLimit,
+  showMoveLimitToggle,
 }: Props) {
   const insets = useSafeAreaInsets();
   const topPadding = Math.max(insets.top, Platform.OS === 'android' ? (RNStatusBar.currentHeight ?? 0) : 0);
@@ -35,13 +40,15 @@ export default function Intro({
   const appliedTopPadding = Math.max(topPadding - SHIFT_UP, 0);
   const [lang, setLang] = useState<'ko' | 'en'>('ko');
   const instructions = gameInstructions[lang];
+  const instructionItems =
+    roundNumber === 1 ? instructions.items.tutorial : instructions.items.challenge;
 
   return (
     <SafeAreaView style={[introStyles.safeArea, { paddingTop: appliedTopPadding }]}>
       <View style={introStyles.introHeader}>
         <Text style={introStyles.title}>Color Flow Maze</Text>
         <Text style={introStyles.subtitle}>색깔 길찾기</Text>
-        {ROUND_NUMBER === 1 ? <Text style={introStyles.roundLabel}>{instructions.roundLabel}</Text> : null}
+        <Text style={introStyles.roundLabel}>{getRoundLabel(roundNumber, lang)}</Text>
       </View>
 
       <View style={introStyles.langToggleWrap}>
@@ -89,7 +96,7 @@ export default function Intro({
 
         <View style={[introStyles.introCard, { marginTop: 12 }]}>
           <Text style={introStyles.introSectionTitle}>{instructions.title}</Text>
-          {instructions.items.map((item, index) => (
+          {instructionItems.map((item, index) => (
             <Text key={index} style={introStyles.introText}>
               {item}
             </Text>
@@ -120,29 +127,31 @@ export default function Intro({
           </Pressable>
         </View>
 
-        <View style={[introStyles.settingsRow, { marginTop: 8 }]}>
-          <Text style={introStyles.settingsLabel}>{instructions.moveLimitLabel}</Text>
-          <Pressable
-            onPress={onToggleMoveLimit}
-            accessibilityRole="switch"
-            accessibilityState={{ checked: moveLimitEnabled }}
-            accessibilityLabel={`${instructions.moveLimitLabel}, ${moveLimitEnabled ? instructions.moveLimitOn : instructions.moveLimitOff}`}
-            style={({ pressed }) => [
-              introStyles.settingsToggle,
-              moveLimitEnabled ? introStyles.settingsToggleOn : introStyles.settingsToggleOff,
-              pressed && introStyles.buttonPressed,
-            ]}
-          >
-            <Text
-              style={[
-                introStyles.settingsToggleText,
-                moveLimitEnabled && introStyles.settingsToggleTextOn,
+        {showMoveLimitToggle ? (
+          <View style={[introStyles.settingsRow, { marginTop: 8 }]}>
+            <Text style={introStyles.settingsLabel}>{instructions.moveLimitLabel}</Text>
+            <Pressable
+              onPress={onToggleMoveLimit}
+              accessibilityRole="switch"
+              accessibilityState={{ checked: moveLimitEnabled }}
+              accessibilityLabel={`${instructions.moveLimitLabel}, ${moveLimitEnabled ? instructions.moveLimitOn : instructions.moveLimitOff}`}
+              style={({ pressed }) => [
+                introStyles.settingsToggle,
+                moveLimitEnabled ? introStyles.settingsToggleOn : introStyles.settingsToggleOff,
+                pressed && introStyles.buttonPressed,
               ]}
             >
-              {moveLimitEnabled ? instructions.moveLimitOn : instructions.moveLimitOff}
-            </Text>
-          </Pressable>
-        </View>
+              <Text
+                style={[
+                  introStyles.settingsToggleText,
+                  moveLimitEnabled && introStyles.settingsToggleTextOn,
+                ]}
+              >
+                {moveLimitEnabled ? instructions.moveLimitOn : instructions.moveLimitOff}
+              </Text>
+            </Pressable>
+          </View>
+        ) : null}
 
         <Pressable
           onPress={continueGame}
