@@ -487,19 +487,20 @@ export const introStyles = StyleSheet.create({
   introHeaderTopRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    justifyContent: 'center',
-    minHeight: 52,
-    position: 'relative',
+    gap: 8,
+  },
+  introHeaderSide: {
+    width: 76,
+    flexShrink: 0,
+    alignItems: 'flex-end',
   },
   introHeaderCenter: {
     flex: 1,
+    minWidth: 0,
     alignItems: 'center',
-    paddingHorizontal: 56,
   },
   introHeaderLang: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
+    flexShrink: 0,
   },
   roundLabel: {
     marginTop: 2,
@@ -596,6 +597,16 @@ export const introStyles = StyleSheet.create({
     borderColor: colors.surfaceBorder,
     overflow: 'hidden',
   },
+  introVersion: {
+    marginTop: 8,
+    width: '100%',
+    maxWidth: 420,
+    textAlign: 'center',
+    color: colors.textMuted,
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 0.2,
+  },
   settingsRow: {
     width: '100%',
     flexDirection: 'row',
@@ -685,6 +696,11 @@ export const introStyles = StyleSheet.create({
   },
   langToggleWrap: {
     flexDirection: 'column',
+    alignItems: 'center',
+    gap: 4,
+  },
+  langToggleWrapHorizontal: {
+    flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
   },

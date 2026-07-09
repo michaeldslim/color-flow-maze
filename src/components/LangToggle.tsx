@@ -7,9 +7,10 @@ import { introStyles } from '../theme';
 type Props = {
   style?: object;
   compact?: boolean;
+  horizontal?: boolean;
 };
 
-export default function LangToggle({ style, compact = false }: Props) {
+export default function LangToggle({ style, compact = false, horizontal = false }: Props) {
   const { i18n, t } = useTranslation();
   const current = (i18n.language === 'en' ? 'en' : 'ko') as TAppLanguage;
 
@@ -19,7 +20,7 @@ export default function LangToggle({ style, compact = false }: Props) {
   };
 
   return (
-    <View style={[introStyles.langToggleWrap, style]}>
+    <View style={[introStyles.langToggleWrap, horizontal && introStyles.langToggleWrapHorizontal, style]}>
       {SUPPORTED_LANGUAGES.map((code) => (
         <Pressable
           key={code}

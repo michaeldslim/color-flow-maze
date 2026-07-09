@@ -6,6 +6,7 @@ import { StatusBar as RNStatusBar } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { getInstructionItems, getLegendForRound } from '../gameInstructions';
 import { getRoundLabel } from '../difficulty';
+import { APP_VERSION } from '../constants';
 import LangToggle from '../components/LangToggle';
 import { introStyles } from '../theme';
 
@@ -48,12 +49,21 @@ export default function Intro({
     <SafeAreaView style={[introStyles.safeArea, { paddingTop: appliedTopPadding }]}>
       <View style={introStyles.introHeader}>
         <View style={introStyles.introHeaderTopRow}>
+          <View style={introStyles.introHeaderSide} />
           <View style={introStyles.introHeaderCenter}>
-            <Text style={introStyles.title}>{t('app.title')}</Text>
-            <Text style={introStyles.subtitle}>{t('app.subtitle')}</Text>
-            <Text style={introStyles.roundLabel}>{getRoundLabel(roundNumber)}</Text>
+            <Text style={introStyles.title} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}>
+              {t('app.title')}
+            </Text>
+            <Text style={introStyles.subtitle} numberOfLines={1}>
+              {t('app.subtitle')}
+            </Text>
+            <Text style={introStyles.roundLabel} numberOfLines={1}>
+              {getRoundLabel(roundNumber)}
+            </Text>
           </View>
-          <LangToggle style={introStyles.introHeaderLang} />
+          <View style={introStyles.introHeaderSide}>
+            <LangToggle horizontal compact style={introStyles.introHeaderLang} />
+          </View>
         </View>
       </View>
 
@@ -137,6 +147,10 @@ export default function Intro({
             </View>
           ) : null}
         </View>
+
+        <Text style={introStyles.introVersion} accessibilityLabel={`Version ${APP_VERSION}`}>
+          v{APP_VERSION}
+        </Text>
 
         <StatusBar style="light" />
       </ScrollView>
