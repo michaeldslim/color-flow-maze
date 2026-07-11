@@ -118,6 +118,10 @@ export const gameStyles = StyleSheet.create({
     borderRadius: 14,
     overflow: 'hidden',
   },
+  boardFadeWrap: {
+    width: '100%',
+    height: '100%',
+  },
   board: {
     width: '100%',
     height: '100%',

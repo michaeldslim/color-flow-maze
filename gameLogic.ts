@@ -23,6 +23,14 @@ export type TLevel = {
   moveLimit: number;
 };
 
+export type TSlideOptions = {
+  iceStops?: boolean;
+};
+
+export type TGenerateLevelOptions = {
+  iceStops?: boolean;
+};
+
 export type TRng = {
   nextFloat: () => number;
 };
@@ -117,7 +125,17 @@ export function isBlocked(grid: TCell[][], pos: TPosition): boolean {
   return grid[pos.row]?.[pos.col] === 'wall';
 }
 
-export function slide(grid: TCell[][], from: TPosition, direction: TDirection): TPosition {
+function isIceStopCell(grid: TCell[][], pos: TPosition, iceStops: boolean): boolean {
+  return iceStops && grid[pos.row]?.[pos.col] === 'ice';
+}
+
+export function slide(
+  grid: TCell[][],
+  from: TPosition,
+  direction: TDirection,
+  options: TSlideOptions = {},
+): TPosition {
+  const iceStops = options.iceStops ?? false;
   const { dr, dc } = directionVector(direction);
   let cur: TPosition = from;
   let next: TPosition = { row: cur.row + dr, col: cur.col + dc };
@@ -125,6 +143,7 @@ export function slide(grid: TCell[][], from: TPosition, direction: TDirection): 
 
   while (!isBlocked(grid, next)) {
     cur = next;
+    if (isIceStopCell(grid, cur, iceStops)) return cur;
     next = { row: cur.row + dr, col: cur.col + dc };
   }
 
@@ -168,11 +187,67 @@ function pickRandomStoppableCell(grid: TCell[][], rng: TRng): TPosition {
   return pickRandomEmptyCell(grid, rng);
 }
 
+function bfsDistances(
+  grid: TCell[][],
+  origin: TPosition,
+  slideOptions: TSlideOptions,
+): Map<string, number> {
+  const encode = (p: TPosition) => `${p.row},${p.col}`;
+  const distances = new Map<string, number>();
+  const queue: Array<{ pos: TPosition; dist: number }> = [{ pos: origin, dist: 0 }];
+  distances.set(encode(origin), 0);
+
+  while (queue.length > 0) {
+    const item = queue.shift();
+    if (!item) break;
+
+    const nextPositions: TPosition[] = [
+      slide(grid, item.pos, 'up', slideOptions),
+      slide(grid, item.pos, 'down', slideOptions),
+      slide(grid, item.pos, 'left', slideOptions),
+      slide(grid, item.pos, 'right', slideOptions),
+    ];
+
+    for (const np of nextPositions) {
+      const key = encode(np);
+      if (distances.has(key)) continue;
+      distances.set(key, item.dist + 1);
+      queue.push({ pos: np, dist: item.dist + 1 });
+    }
+  }
+
+  return distances;
+}
+
+export function getShortestPathCorridor(
+  grid: TCell[][],
+  start: TPosition,
+  goal: TPosition,
+  slideOptions: TSlideOptions,
+): Set<string> {
+  const encode = (p: TPosition) => `${p.row},${p.col}`;
+  const fromStart = bfsDistances(grid, start, slideOptions);
+  const fromGoal = bfsDistances(grid, goal, slideOptions);
+  const shortestDist = fromStart.get(encode(goal));
+  if (shortestDist === undefined) return new Set();
+
+  const corridor = new Set<string>();
+  for (const [key, startDist] of fromStart.entries()) {
+    const goalDist = fromGoal.get(key);
+    if (goalDist !== undefined && startDist + goalDist === shortestDist) {
+      corridor.add(key);
+    }
+  }
+
+  return corridor;
+}
+
 export function minMovesToGoal(
   grid: TCell[][],
   start: TPosition,
   goal: TPosition,
   moveLimit: number,
+  options: TSlideOptions = {},
 ): number | null {
   const encode = (p: TPosition) => `${p.row},${p.col}`;
 
@@ -187,10 +262,10 @@ export function minMovesToGoal(
     if (item.dist >= moveLimit) continue;
 
     const nextPositions: TPosition[] = [
-      slide(grid, item.pos, 'up'),
-      slide(grid, item.pos, 'down'),
-      slide(grid, item.pos, 'left'),
-      slide(grid, item.pos, 'right'),
+      slide(grid, item.pos, 'up', options),
+      slide(grid, item.pos, 'down', options),
+      slide(grid, item.pos, 'left', options),
+      slide(grid, item.pos, 'right', options),
     ];
 
     for (const np of nextPositions) {
@@ -204,7 +279,35 @@ export function minMovesToGoal(
   return null;
 }
 
-export function generateLevel(levelNumber: number, seed: number): TLevel {
+function placeIceOnGrid(
+  grid: TCell[][],
+  rng: TRng,
+  iceProbability: number,
+  corridor: Set<string> | null,
+): void {
+  const rows = grid.length;
+  const cols = grid[0]?.length ?? 0;
+  const encode = (p: TPosition) => `${p.row},${p.col}`;
+
+  for (let r = 1; r < rows - 1; r += 1) {
+    for (let c = 1; c < cols - 1; c += 1) {
+      const cell = grid[r]?.[c];
+      if (cell !== 'empty') continue;
+      if (corridor && !corridor.has(encode({ row: r, col: c }))) continue;
+      if (rng.nextFloat() < iceProbability) {
+        grid[r][c] = 'ice';
+      }
+    }
+  }
+}
+
+export function generateLevel(
+  levelNumber: number,
+  seed: number,
+  options: TGenerateLevelOptions = {},
+): TLevel {
+  const iceStops = options.iceStops ?? false;
+  const slideOptions: TSlideOptions = { iceStops };
   const size = Math.min(12, Math.max(8, 8 + Math.floor((levelNumber - 2) / 2)));
   const moveLimit = DEFAULT_MOVE_LIMIT;
   const wallProbabilityBase =
@@ -216,8 +319,8 @@ export function generateLevel(levelNumber: number, seed: number): TLevel {
   const wallProbability = Math.min(0.26, wallProbabilityBase);
 
   // Ice probability increases slowly with level to add variety
-  const iceProbabilityBase = 0.02 + (levelNumber - 1) * 0.003;
-  const iceProbability = Math.min(0.12, iceProbabilityBase);
+  const iceProbabilityBase = iceStops ? 0.04 + (levelNumber - 1) * 0.004 : 0.02 + (levelNumber - 1) * 0.003;
+  const iceProbability = Math.min(iceStops ? 0.18 : 0.12, iceProbabilityBase);
 
   const rng = createSeededRng(seed ^ (levelNumber * 2654435761));
 
@@ -225,9 +328,7 @@ export function generateLevel(levelNumber: number, seed: number): TLevel {
     const grid: TCell[][] = Array.from({ length: size }, (_r, r) =>
       Array.from({ length: size }, (_c, c) => {
         if (r === 0 || c === 0 || r === size - 1 || c === size - 1) return 'wall';
-        const v = rng.nextFloat();
-        if (v < wallProbability) return 'wall';
-        if (v < wallProbability + iceProbability) return 'ice';
+        if (rng.nextFloat() < wallProbability) return 'wall';
         return 'empty';
       }),
     );
@@ -239,7 +340,14 @@ export function generateLevel(levelNumber: number, seed: number): TLevel {
     grid[start.row][start.col] = 'start';
     grid[goal.row][goal.col] = 'goal';
 
-    const minMoves = minMovesToGoal(grid, start, goal, moveLimit);
+    const corridor = iceStops
+      ? getShortestPathCorridor(grid, start, goal, slideOptions)
+      : null;
+    if (iceStops && corridor.size === 0) continue;
+
+    placeIceOnGrid(grid, rng, iceProbability, corridor);
+
+    const minMoves = minMovesToGoal(grid, start, goal, moveLimit, slideOptions);
     if (minMoves === null) continue;
     if (minMoves < 2) continue;
 

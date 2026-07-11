@@ -5,6 +5,7 @@ import {
   DEFAULT_MOVE_LIMIT,
   directionVector,
   generateLevel,
+  getShortestPathCorridor,
   inBounds,
   isBlocked,
   isStoppableCell,
@@ -144,6 +145,25 @@ describe('slide', () => {
     const result = slide(grid, { row: 4, col: 4 }, 'up');
     expect(result).toEqual({ row: 1, col: 4 });
   });
+
+  it('stops on ice when iceStops is true', () => {
+    const iceGrid: typeof grid = grid.map((row) => row.slice());
+    iceGrid[1][3] = 'ice';
+
+    const withoutIceStops = slide(iceGrid, { row: 1, col: 1 }, 'right');
+    expect(withoutIceStops).toEqual({ row: 1, col: 4 });
+
+    const withIceStops = slide(iceGrid, { row: 1, col: 1 }, 'right', { iceStops: true });
+    expect(withIceStops).toEqual({ row: 1, col: 3 });
+  });
+
+  it('can slide off an ice cell when iceStops is true', () => {
+    const iceGrid: typeof grid = grid.map((row) => row.slice());
+    iceGrid[1][1] = 'ice';
+
+    const result = slide(iceGrid, { row: 1, col: 1 }, 'right', { iceStops: true });
+    expect(result).toEqual({ row: 1, col: 4 });
+  });
 });
 
 describe('isStoppableCell', () => {
@@ -253,5 +273,50 @@ describe('generateLevel', () => {
     expect(a.start).toEqual(b.start);
     expect(a.goal).toEqual(b.goal);
     expect(a.moveLimit).toBe(b.moveLimit);
+  });
+
+  it('generates solvable levels with ice stops enabled', () => {
+    for (let level = 1; level <= 10; level += 1) {
+      const generated = generateLevel(level, 1000 + level, { iceStops: true });
+      const result = minMovesToGoal(
+        generated.grid,
+        generated.start,
+        generated.goal,
+        generated.moveLimit,
+        { iceStops: true },
+      );
+      expect(result).not.toBeNull();
+    }
+  });
+
+  it('places ice only on shortest-path corridor when ice stops enabled', () => {
+    const encode = (row: number, col: number) => `${row},${col}`;
+    const gridWithoutIce = (grid: ReturnType<typeof generateLevel>['grid']) =>
+      grid.map((row) => row.map((cell) => (cell === 'ice' ? 'empty' : cell)));
+    let foundIce = false;
+
+    for (let seed = 0; seed < 100; seed += 1) {
+      const level = generateLevel(15, 9000 + seed, { iceStops: true });
+      const icePositions: Array<{ row: number; col: number }> = [];
+      level.grid.forEach((row, r) => {
+        row.forEach((cell, c) => {
+          if (cell === 'ice') icePositions.push({ row: r, col: c });
+        });
+      });
+      if (icePositions.length === 0) continue;
+
+      foundIce = true;
+      const corridor = getShortestPathCorridor(
+        gridWithoutIce(level.grid),
+        level.start,
+        level.goal,
+        { iceStops: true },
+      );
+      for (const pos of icePositions) {
+        expect(corridor.has(encode(pos.row, pos.col))).toBe(true);
+      }
+    }
+
+    expect(foundIce).toBe(true);
   });
 });

@@ -2,7 +2,7 @@ import { StatusBar } from 'expo-status-bar';
 import { setAudioModeAsync, useAudioPlayer } from 'expo-audio';
 import Fireworks from './Fireworks';
 import * as Haptics from 'expo-haptics';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useGame from './src/useGame';
 import { getRoundCompleteTitle } from './src/difficulty';
@@ -21,7 +21,6 @@ import Intro from './src/screens/Intro';
 import Board from './src/components/Board';
 import HUD from './src/components/HUD';
 import Controls from './src/components/Controls';
-import LevelTransition from './src/components/LevelTransition';
 import RoundCompleteModal from './src/components/RoundCompleteModal';
 import { useSoundEnabled, useMoveLimitEnabled } from './src/settings';
 import { gameStyles } from './src/theme';
@@ -75,7 +74,6 @@ function AppContent() {
 
   const [showFireworks, setShowFireworks] = useState<boolean>(false);
   const [showResetHintInline, setShowResetHintInline] = useState<boolean>(false);
-  const [showLevelTransition, setShowLevelTransition] = useState<boolean>(false);
   const prevGameCompletedRef = useRef<boolean>(false);
   const lastStatusRef = useRef<TGameStatus>('playing');
 
@@ -87,9 +85,34 @@ function AppContent() {
   const goalPulse = useRef(new Animated.Value(0)).current;
   const timerPulse = useRef(new Animated.Value(0)).current;
   const winFlashOpacity = useRef(new Animated.Value(0)).current;
+  const boardFadeOpacity = useRef(new Animated.Value(1)).current;
+  const pendingBoardFadeRef = useRef<boolean>(false);
   const lastTimerWarningHapticRef = useRef<number>(levelTimeSeconds + 1);
   const hasShownResetHintInlineRef = useRef<boolean>(false);
   const didTriggerResetLongPressRef = useRef<boolean>(false);
+
+  const fadeInBoard = () => {
+    boardFadeOpacity.stopAnimation();
+    boardFadeOpacity.setValue(0);
+    Animated.timing(boardFadeOpacity, {
+      toValue: 1,
+      duration: 450,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const goToNextLevel = useCallback(() => {
+    if (levelNumber >= maxLevel) return;
+    pendingBoardFadeRef.current = true;
+    newLevel();
+  }, [levelNumber, maxLevel, newLevel]);
+
+  useLayoutEffect(() => {
+    if (!pendingBoardFadeRef.current) return;
+    pendingBoardFadeRef.current = false;
+    fadeInBoard();
+  }, [levelNumber]);
 
   const shakeBoard = () => {
     boardShakeX.stopAnimation();
@@ -152,13 +175,6 @@ function AppContent() {
       goalPulse.stopAnimation();
     };
   }, [goalPulse, levelNumber, screen]);
-
-  useEffect(() => {
-    if (screen !== 'game') return;
-    setShowLevelTransition(true);
-    const timeoutId = setTimeout(() => setShowLevelTransition(false), 1200);
-    return () => clearTimeout(timeoutId);
-  }, [levelNumber, screen]);
 
   const pulsePlayer = (strength: 'move' | 'win') => {
     playerScale.stopAnimation();
@@ -270,9 +286,9 @@ function AppContent() {
 
   useEffect(() => {
     if (status !== 'won' || gameCompleted) return;
-    const id = setTimeout(() => newLevel(), 3000);
+    const id = setTimeout(() => goToNextLevel(), 1500);
     return () => clearTimeout(id);
-  }, [status, gameCompleted, newLevel]);
+  }, [status, gameCompleted, goToNextLevel]);
 
   const handleAttemptMove = (direction: TDirection) => {
     const result = attemptMove(direction);
@@ -307,7 +323,7 @@ function AppContent() {
       reset();
       return;
     }
-    newLevel();
+    goToNextLevel();
   };
 
   const isTimerWarning = timerEnabled && status === 'playing' && secondsLeft > 0 && secondsLeft <= 10;
@@ -362,17 +378,18 @@ function AppContent() {
 
         <View style={gameStyles.boardWrapper}>
           <View style={gameStyles.boardSlot}>
-            <Board
-              grid={grid}
-              position={position}
-              trail={trail}
-              goal={goal}
-              playerScale={playerScale}
-              goalPulse={goalPulse}
-              boardShakeX={boardShakeX}
-              winFlashOpacity={winFlashOpacity}
-            />
-            <LevelTransition levelNumber={levelNumber} visible={showLevelTransition && status === 'playing'} />
+            <Animated.View style={[gameStyles.boardFadeWrap, { opacity: boardFadeOpacity }]}>
+              <Board
+                grid={grid}
+                position={position}
+                trail={trail}
+                goal={goal}
+                playerScale={playerScale}
+                goalPulse={goalPulse}
+                boardShakeX={boardShakeX}
+                winFlashOpacity={winFlashOpacity}
+              />
+            </Animated.View>
           </View>
         </View>
 

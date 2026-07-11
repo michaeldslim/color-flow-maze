@@ -42,7 +42,10 @@ export function useGame(options: UseGameOptions = {}) {
   const levelTimeSeconds = getLevelTimerSeconds(roundNumber, levelNumber);
 
   const currentSeed = levelSeeds[levelNumber - 1] ?? (Date.now() >>> 0);
-  const level: TLevel = useMemo(() => generateLevel(levelNumber, currentSeed), [levelNumber, currentSeed]);
+  const level: TLevel = useMemo(
+    () => generateLevel(levelNumber, currentSeed, { iceStops: roundConfig.mechanics.iceStops }),
+    [levelNumber, currentSeed, roundConfig.mechanics.iceStops],
+  );
 
   const { grid, start, goal } = level;
   const rows = grid.length;
@@ -297,7 +300,9 @@ export function useGame(options: UseGameOptions = {}) {
 
     const { dr, dc } = directionVector(direction as TDirection);
 
-    const dest = slide(grid, position, direction as TDirection);
+    const dest = slide(grid, position, direction as TDirection, {
+      iceStops: roundConfig.mechanics.iceStops,
+    });
     if (positionsEqual(dest, position)) return { blocked: true };
 
     pushHistory({ position, movesUsed, status, trail: cloneTrail(trail) });
