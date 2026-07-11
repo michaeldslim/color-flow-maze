@@ -21,6 +21,7 @@ export type TLevel = {
   start: TPosition;
   goal: TPosition;
   moveLimit: number;
+  requiredCells: TPosition[];
 };
 
 export type TSlideOptions = {
@@ -29,6 +30,7 @@ export type TSlideOptions = {
 
 export type TGenerateLevelOptions = {
   iceStops?: boolean;
+  requireTrailCoverage?: boolean;
 };
 
 export type TRng = {
@@ -242,6 +244,37 @@ export function getShortestPathCorridor(
   return corridor;
 }
 
+function corridorToPositions(corridor: Set<string>): TPosition[] {
+  return Array.from(corridor).map((key) => {
+    const [row, col] = key.split(',').map(Number);
+    return { row, col };
+  });
+}
+
+export function getRequiredCells(
+  grid: TCell[][],
+  start: TPosition,
+  goal: TPosition,
+  slideOptions: TSlideOptions = {},
+): TPosition[] {
+  const corridor = getShortestPathCorridor(grid, start, goal, slideOptions);
+  return corridorToPositions(corridor);
+}
+
+export function isTrailCoverageComplete(trail: boolean[][], requiredCells: TPosition[]): boolean {
+  if (requiredCells.length === 0) return true;
+  return requiredCells.every((pos) => trail[pos.row]?.[pos.col] === true);
+}
+
+export function isLevelWin(
+  trail: boolean[][],
+  position: TPosition,
+  goal: TPosition,
+  requiredCells: TPosition[],
+): boolean {
+  return positionsEqual(position, goal) && isTrailCoverageComplete(trail, requiredCells);
+}
+
 export function minMovesToGoal(
   grid: TCell[][],
   start: TPosition,
@@ -307,6 +340,7 @@ export function generateLevel(
   options: TGenerateLevelOptions = {},
 ): TLevel {
   const iceStops = options.iceStops ?? false;
+  const requireTrailCoverage = options.requireTrailCoverage ?? false;
   const slideOptions: TSlideOptions = { iceStops };
   const size = Math.min(12, Math.max(8, 8 + Math.floor((levelNumber - 2) / 2)));
   const moveLimit = DEFAULT_MOVE_LIMIT;
@@ -351,7 +385,10 @@ export function generateLevel(
     if (minMoves === null) continue;
     if (minMoves < 2) continue;
 
-    return { grid, start, goal, moveLimit };
+    const requiredCells = requireTrailCoverage ? getRequiredCells(grid, start, goal, slideOptions) : [];
+    if (requireTrailCoverage && requiredCells.length < 4) continue;
+
+    return { grid, start, goal, moveLimit, requiredCells };
   }
 
   const fallback = parseLevel([
@@ -364,5 +401,8 @@ export function generateLevel(
     '#.....G#',
     '########',
   ]);
-  return { ...fallback, moveLimit: DEFAULT_MOVE_LIMIT };
+  const fallbackRequired = requireTrailCoverage
+    ? getRequiredCells(fallback.grid, fallback.start, fallback.goal, slideOptions)
+    : [];
+  return { ...fallback, moveLimit: DEFAULT_MOVE_LIMIT, requiredCells: fallbackRequired };
 }

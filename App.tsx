@@ -69,7 +69,7 @@ function AppContent() {
     attemptMove,
   } = useGame({ moveLimitEnabled: moveLimitSettingEnabled });
 
-  const { grid, goal, moveLimit } = level;
+  const { grid, goal, moveLimit, requiredCells = [] } = level;
   const { undoLimit, timerEnabled, showUndo, maxLevel } = roundConfig;
 
   const [showFireworks, setShowFireworks] = useState<boolean>(false);
@@ -384,6 +384,7 @@ function AppContent() {
                 position={position}
                 trail={trail}
                 goal={goal}
+                requiredCells={requiredCells}
                 playerScale={playerScale}
                 goalPulse={goalPulse}
                 boardShakeX={boardShakeX}

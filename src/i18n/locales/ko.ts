@@ -124,6 +124,7 @@ const ko = {
     wallAt: '벽 — {{row}}행 {{col}}열',
     iceAt: '얼음 — {{row}}행 {{col}}열',
     trailAt: '경로 — {{row}}행 {{col}}열',
+    requiredAt: '필수 경로 — {{row}}행 {{col}}열',
     emptyAt: '빈 칸 — {{row}}행 {{col}}열',
   },
 } as const;

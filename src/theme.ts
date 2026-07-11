@@ -173,6 +173,10 @@ export const gameStyles = StyleSheet.create({
     backgroundColor: colors.cellTrail,
     borderColor: colors.cellTrail,
   },
+  cellRequired: {
+    backgroundColor: 'rgba(251, 191, 36, 0.22)',
+    borderColor: 'rgba(251, 191, 36, 0.55)',
+  },
   cellGoal: {
     backgroundColor: colors.cellGoal,
     borderColor: colors.cellGoal,

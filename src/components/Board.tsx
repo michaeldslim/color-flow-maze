@@ -9,6 +9,7 @@ type Props = {
   position: TPosition;
   trail: boolean[][];
   goal: TPosition;
+  requiredCells: TPosition[];
   playerScale: Animated.Value;
   goalPulse: Animated.Value;
   boardShakeX: Animated.Value;
@@ -20,6 +21,7 @@ const Board: React.FC<Props> = ({
   position,
   trail,
   goal,
+  requiredCells,
   playerScale,
   goalPulse,
   boardShakeX,
@@ -27,11 +29,14 @@ const Board: React.FC<Props> = ({
 }) => {
   const { t } = useTranslation();
 
+  const requiredKeys = new Set((requiredCells ?? []).map((pos) => `${pos.row},${pos.col}`));
+
   const cellAccessibilityLabel = (
     cell: TCell,
     isPlayer: boolean,
     isGoal: boolean,
     isPainted: boolean,
+    isRequired: boolean,
     row: number,
     col: number,
   ): string => {
@@ -41,6 +46,7 @@ const Board: React.FC<Props> = ({
     if (cell === 'wall') return t('board.wallAt', coords);
     if (cell === 'ice') return t('board.iceAt', coords);
     if (isPainted) return t('board.trailAt', coords);
+    if (isRequired) return t('board.requiredAt', coords);
     return t('board.emptyAt', coords);
   };
 
@@ -55,15 +61,17 @@ const Board: React.FC<Props> = ({
             const isPainted = trail[r]?.[c] ?? false;
             const isWallCell = cell === 'wall';
             const isIceCell = cell === 'ice';
+            const isRequired = requiredKeys.has(`${r},${c}`);
 
             return (
               <View
                 key={`c-${r}-${c}`}
-                accessibilityLabel={cellAccessibilityLabel(cell, isPlayer, isGoal, isPainted, r, c)}
+                accessibilityLabel={cellAccessibilityLabel(cell, isPlayer, isGoal, isPainted, isRequired, r, c)}
                 style={[
                   gameStyles.cell,
                   isWallCell && gameStyles.cellWall,
                   isIceCell && gameStyles.cellIce,
+                  !isWallCell && !isIceCell && isRequired && !isPainted && gameStyles.cellRequired,
                   !isWallCell && !isIceCell && isPainted && gameStyles.cellPainted,
                   isGoal && gameStyles.cellGoal,
                   isPlayer && gameStyles.cellPlayer,

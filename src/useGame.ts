@@ -5,6 +5,7 @@ import {
   generateLevel,
   inBounds,
   isBlocked,
+  isLevelWin,
   slide,
   positionsEqual,
   directionVector,
@@ -43,8 +44,12 @@ export function useGame(options: UseGameOptions = {}) {
 
   const currentSeed = levelSeeds[levelNumber - 1] ?? (Date.now() >>> 0);
   const level: TLevel = useMemo(
-    () => generateLevel(levelNumber, currentSeed, { iceStops: roundConfig.mechanics.iceStops }),
-    [levelNumber, currentSeed, roundConfig.mechanics.iceStops],
+    () =>
+      generateLevel(levelNumber, currentSeed, {
+        iceStops: roundConfig.mechanics.iceStops,
+        requireTrailCoverage: roundConfig.mechanics.requireTrailCoverage,
+      }),
+    [levelNumber, currentSeed, roundConfig.mechanics.iceStops, roundConfig.mechanics.requireTrailCoverage],
   );
 
   const { grid, start, goal } = level;
@@ -315,7 +320,7 @@ export function useGame(options: UseGameOptions = {}) {
     }
 
     const newMovesUsed = movesUsed + 1;
-    const didWin = positionsEqual(dest, goal);
+    const didWin = isLevelWin(nextTrail, dest, goal, level.requiredCells ?? []);
 
     setPosition(dest);
     setTrail(nextTrail);

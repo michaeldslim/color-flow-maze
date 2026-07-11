@@ -8,7 +8,9 @@ import {
   getShortestPathCorridor,
   inBounds,
   isBlocked,
+  isLevelWin,
   isStoppableCell,
+  isTrailCoverageComplete,
   minMovesToGoal,
   parseLevel,
   positionsEqual,
@@ -318,5 +320,102 @@ describe('generateLevel', () => {
     }
 
     expect(foundIce).toBe(true);
+  });
+
+  it('returns empty requiredCells when path forcing is disabled', () => {
+    const level = generateLevel(5, 42);
+    expect(level.requiredCells).toEqual([]);
+  });
+
+  it('generates requiredCells on shortest-path corridor when path forcing enabled', () => {
+    let foundRequired = false;
+
+    for (let seed = 0; seed < 100; seed += 1) {
+      const level = generateLevel(10, 7000 + seed, { requireTrailCoverage: true });
+      if (level.requiredCells.length === 0) continue;
+
+      foundRequired = true;
+      const corridor = getShortestPathCorridor(level.grid, level.start, level.goal, { iceStops: false });
+      const encode = (row: number, col: number) => `${row},${col}`;
+      for (const pos of level.requiredCells) {
+        expect(corridor.has(encode(pos.row, pos.col))).toBe(true);
+      }
+
+      const result = minMovesToGoal(level.grid, level.start, level.goal, level.moveLimit);
+      expect(result).not.toBeNull();
+    }
+
+    expect(foundRequired).toBe(true);
+  });
+
+  it('generates solvable path-forcing levels with ice stops (R5)', () => {
+    for (let level = 1; level <= 10; level += 1) {
+      const generated = generateLevel(level, 2000 + level, {
+        iceStops: true,
+        requireTrailCoverage: true,
+      });
+      expect(generated.requiredCells.length).toBeGreaterThanOrEqual(4);
+      const result = minMovesToGoal(
+        generated.grid,
+        generated.start,
+        generated.goal,
+        generated.moveLimit,
+        { iceStops: true },
+      );
+      expect(result).not.toBeNull();
+    }
+  });
+});
+
+describe('isTrailCoverageComplete', () => {
+  it('returns true when requiredCells is empty', () => {
+    expect(isTrailCoverageComplete([[true]], [])).toBe(true);
+  });
+
+  it('returns false when a required cell is not painted', () => {
+    const trail = [
+      [true, false],
+      [false, false],
+    ];
+    expect(isTrailCoverageComplete(trail, [{ row: 0, col: 0 }, { row: 0, col: 1 }])).toBe(false);
+  });
+
+  it('returns true when all required cells are painted', () => {
+    const trail = [
+      [true, true],
+      [false, true],
+    ];
+    expect(isTrailCoverageComplete(trail, [{ row: 0, col: 0 }, { row: 0, col: 1 }, { row: 1, col: 1 }])).toBe(true);
+  });
+});
+
+describe('isLevelWin', () => {
+  const goal = { row: 1, col: 2 };
+  const requiredCells = [
+    { row: 0, col: 0 },
+    { row: 0, col: 1 },
+    { row: 0, col: 2 },
+    { row: 1, col: 2 },
+  ];
+
+  it('does not win at goal without full trail coverage', () => {
+    const trail = [
+      [true, true, false],
+      [false, false, true],
+    ];
+    expect(isLevelWin(trail, goal, goal, requiredCells)).toBe(false);
+  });
+
+  it('wins at goal when all required cells are painted', () => {
+    const trail = [
+      [true, true, true],
+      [false, false, true],
+    ];
+    expect(isLevelWin(trail, goal, goal, requiredCells)).toBe(true);
+  });
+
+  it('wins at goal when requiredCells is empty', () => {
+    const trail = [[false, false, true]];
+    expect(isLevelWin(trail, goal, goal, [])).toBe(true);
   });
 });

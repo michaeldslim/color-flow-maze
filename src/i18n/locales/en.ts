@@ -124,6 +124,7 @@ const en = {
     wallAt: 'Wall at row {{row}} column {{col}}',
     iceAt: 'Ice tile at row {{row}} column {{col}}',
     trailAt: 'Trail at row {{row}} column {{col}}',
+    requiredAt: 'Required path at row {{row}} column {{col}}',
     emptyAt: 'Empty at row {{row}} column {{col}}',
   },
 } as const;
