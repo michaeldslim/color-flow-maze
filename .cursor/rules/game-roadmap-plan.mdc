@@ -15,11 +15,12 @@ alwaysApply: false
 | Move limit | Round-aware ✅ | R1: optional toggle (10 moves); R2+: always 10 moves per level |
 | Timer | Round-aware ✅ | R1: off; R2–R4: 60s/level (−1 every 4 levels, min 30s); R5: 45s base |
 | Undo | Round-aware ✅ | 5 in Round 1; hidden / 0 in Round 2+ |
-| Ice cells | Generated + rendered | ❄ marker only — **ice-stop gameplay not active** |
-| Trail | Painted blue on move | Visual only — **path-forcing not active** |
+| Ice cells | **Phase 3 done** ✅ | R1–R2: decorative ❄; R3/R5: **ice-stop gameplay active** |
+| Trail | **Phase 4 done** ✅ | R1–R3: visual only; R4/R5: **필수 경로(금색) 칠해야 승리** |
 | Rounds | **Phase 2 done** | R1→R2→…→R5→R2 순환 (`advanceRound`) |
 | i18n | **Phase 2.6 done** | KO/EN 전체 UI, AsyncStorage 영속 |
 | Intro UI | **Partial** | 컴팩트 1차 ✅ (`Intro.tsx`); 추가 폴리시 → Phase 6 |
+| Level transition | ✅ | 클리어 보드 1.5s 유지 → 다음 보드 **페이드인** (450ms); HUD **스테이지 클리어**; 오버레이 배지 없음 |
 
 ---
 
@@ -49,12 +50,12 @@ New seeds                 New seeds
 |-------|-------|--------|------|-------|------------|-----------|--------------|
 | 1 | Tutorial | 10 | 5 | Off | Optional | — | — |
 | 2 | Challenge | 50 | 0 | 60s | On | — | — |
-| 3 | Ice | 50 | 0 | 60s | On | ✅ config | — |
-| 4 | Path | 50 | 0 | 60s | On | — | ✅ config |
-| 5 | Master | 50 | 0 | 45s | On | ✅ config | ✅ config |
+| 3 | Ice | 50 | 0 | 60s | On | ✅ gameplay | — |
+| 4 | Path | 50 | 0 | 60s | On | — | ✅ gameplay |
+| 5 | Master | 50 | 0 | 45s | On | ✅ gameplay | ✅ gameplay |
 | R5 → | R2 | 50 | … | … | … | … | … |
 
-> Ice / Path 열: **config 완료** (Phase 2). **gameplay 연동**은 Phase 3·4.
+> Ice stops · Path forcing: **gameplay 완료** (Phase 3·4).
 
 ### Completion flow
 
@@ -83,7 +84,7 @@ New seeds                 New seeds
 ### P1.2 Game feedback ✅
 - [x] Distinct lose states: "Time up" vs "Out of moves" (`lossReason` in `useGame`)
 - [x] **Try Again** button enabled on loss (calls `reset()`)
-- [x] Level-transition overlay: `LevelTransition` badge on level change
+- [x] Level advance UX (`App.tsx`): 클리어 보드 1.5s → `goToNextLevel()` → 보드 **페이드인** (`boardFadeOpacity`, 450ms); HUD **스테이지 클리어** / **다음 레벨** 버튼
 - [x] Win/lose haptics + light haptic on blocked slide
 - [x] Ice tile visual: ❄ marker on ice cells
 
@@ -152,7 +153,7 @@ New seeds                 New seeds
 - [x] 공유 `LangToggle` — 인트로 화면만
 - [x] 인트로 → 게임 전환 시 언어 유지
 - [x] `gameInstructions.ts`, `difficulty.ts` 라운드 라벨 → `i18n.t()`
-- [x] `App`, `HUD`, `Controls`, `Board`, `RoundCompleteModal`, `LevelTransition` 번역
+- [x] `App`, `HUD`, `Controls`, `Board`, `RoundCompleteModal` 번역
 
 ### Phase 2 files changed
 | File | Change |
@@ -169,52 +170,71 @@ New seeds                 New seeds
 
 ---
 
-## Phase 3 — Ice Stops (Round 3 + Round 5)
+## Phase 3 — Ice Stops (Round 3 + Round 5) ✅ DONE
 
 **Goal:** 얼음(❄) 타일에서 벽 없이도 미끄러짐이 멈춘다.
 
-### P3.1 `slide()` ice-stop semantics
-- [ ] `slide(grid, from, dir, { iceStops })` — `iceStops: true`이면 ice 셀에서 정지
-- [ ] `minMovesToGoal()` BFS도 동일 옵션 사용
+### P3.1 `slide()` ice-stop semantics ✅
+- [x] `slide(grid, from, dir, { iceStops })` — `iceStops: true`이면 ice 셀에서 정지
+- [x] `minMovesToGoal()` BFS도 동일 옵션 사용
 
-### P3.2 Level generation (Round 3, 5)
-- [ ] `generateLevel(level, seed, { iceStops })` — ice 활성 라운드에서 BFS solvability 검증
-- [ ] Ice 밀도: corridor 위주 배치 (숏컷에는 ice 없음 → overshoot 유도)
+### P3.2 Level generation (Round 3, 5) ✅
+- [x] `generateLevel(level, seed, { iceStops })` — ice 활성 라운드에서 BFS solvability 검증
+- [x] Ice 밀도: corridor 위주 배치 (숏컷에는 ice 없음 → overshoot 유도)
 
-### P3.3 `useGame` wiring
-- [ ] `attemptMove` / `slide`에 `roundConfig.mechanics.iceStops` 전달
+### P3.3 `useGame` wiring ✅
+- [x] `attemptMove` / `slide`에 `roundConfig.mechanics.iceStops` 전달
+- [x] `generateLevel`에도 동일 옵션 전달 (R3·R5 레벨 생성)
 
 ### P3.4 UI / feedback
 - [x] ❄ marker on board (done)
-- [ ] Blocked-slide haptic when overshooting past ice (optional)
+- [ ] Blocked-slide haptic when overshooting past ice (optional — 기존 blocked haptic 사용)
 
-### P3.5 Tests
-- [ ] `slide` stops on ice when `iceStops: true`
-- [ ] Generated R3/R5 levels solvable with ice semantics
+### P3.5 Tests ✅
+- [x] `slide` stops on ice when `iceStops: true`
+- [x] Generated R3/R5 levels solvable with ice semantics
+
+### Phase 3 files changed
+| File | Change |
+|------|--------|
+| `gameLogic.ts` | `TSlideOptions`, ice-stop `slide`, corridor ice placement, `getShortestPathCorridor` |
+| `src/useGame.ts` | `iceStops` → `generateLevel` + `attemptMove` |
+| `__tests__/gameLogic.test.ts` | Ice-stop slide + solvability + corridor placement tests |
 
 ---
 
-## Phase 4 — Path Forcing (Round 4 + Round 5)
+## Phase 4 — Path Forcing (Round 4 + Round 5) ✅ DONE
 
 **Goal:** 최단 경로 corridor 셀을 모두 칠해야 승리.
 
-### P4.1 Required cells (`gameLogic.ts`)
-- [ ] `generateLevel(..., { requireTrailCoverage })` → `requiredCells: TPosition[]`
-- [ ] BFS parent map으로 shortest-path corridor 계산
-- [ ] Win: `atGoal && requiredCells.every(p => trail[p.row][p.col])`
+### P4.1 Required cells (`gameLogic.ts`) ✅
+- [x] `generateLevel(..., { requireTrailCoverage })` → `requiredCells: TPosition[]`
+- [x] `getShortestPathCorridor` / `getRequiredCells` — shortest-path corridor 계산
+- [x] Win: `isLevelWin()` — goal + `requiredCells.every(p => trail[p.row][p.col])`
 
-### P4.2 Board overlay
-- [ ] Required cells: faint gold highlight until painted
-- [ ] `useGame.attemptMove` win check
+### P4.2 Board overlay ✅
+- [x] Required cells: faint gold highlight until painted (`cellRequired`, `Board.tsx`)
+- [x] `useGame.attemptMove` win check via `isLevelWin`
 
-### P4.3 Loophole prevention
-- [ ] BFS / `slide` semantics 일치 (ice 활성 라운드는 ice 포함)
-- [ ] Goal remains stoppable
-- [ ] No soft-lock: player can always Reset
-- [ ] Unit tests in `__tests__/gameLogic.test.ts`
+### P4.3 Loophole prevention ✅
+- [x] BFS / `slide` semantics 일치 (R5: ice 포함 `slideOptions`)
+- [x] Goal remains stoppable (`pickRandomStoppableCell`)
+- [x] No soft-lock: player can always Reset
+- [x] Unit tests in `__tests__/gameLogic.test.ts`
 
 ### P4.4 Deferred: one-way gates
 - Option A (gates) — backlog; path forcing (Option B)를 R4/R5에 우선 적용
+
+### Phase 4 files changed
+| File | Change |
+|------|--------|
+| `gameLogic.ts` | `requiredCells`, `requireTrailCoverage`, `isTrailCoverageComplete`, `isLevelWin` |
+| `src/useGame.ts` | `requireTrailCoverage` → `generateLevel`; win via `isLevelWin` |
+| `src/components/Board.tsx` | Gold overlay on unpainted required cells |
+| `src/theme.ts` | `cellRequired` style |
+| `src/i18n/locales/*` | `board.requiredAt` a11y |
+| `App.tsx` | `requiredCells` → `Board` |
+| `__tests__/gameLogic.test.ts` | Path forcing + R5 combined tests |
 
 ---
 
@@ -251,8 +271,8 @@ Intro 컴팩트 1차(Phase 2.5) 이후, **나중에 더 하고 싶다면**:
 1. ~~Phase 1 UI refactor~~ ✅
 2. ~~5-round cycle + profiles (Phase 2)~~ ✅
 3. ~~Full-game i18n (Phase 2.6)~~ ✅
-4. **Phase 3** — Ice stops gameplay (R3, R5)
-5. **Phase 4** — Path forcing gameplay (R4, R5)
+4. ~~Phase 3 — Ice stops gameplay (R3, R5)~~ ✅
+5. ~~Phase 4 — Path forcing gameplay (R4, R5)~~ ✅
 6. **Phase 5 backlog** as time allows
 7. **Phase 6** — Intro UI 추가 폴리시 (optional)
 
@@ -265,8 +285,8 @@ Intro 컴팩트 1차(Phase 2.5) 이후, **나중에 더 하고 싶다면**:
 | 1 UI ✅ | `App.tsx`, `src/components/*`, `src/theme.ts`, `src/screens/Intro.tsx` |
 | 2 Rounds ✅ | `src/constants.ts`, `src/difficulty.ts`, `src/useGame.ts`, `src/persistence.ts` |
 | 2.6 i18n ✅ | `src/i18n/*`, `src/components/LangToggle.tsx`, `src/gameInstructions.ts`, UI components |
-| 3 Ice | `gameLogic.ts`, `src/useGame.ts`, `__tests__/gameLogic.test.ts` |
-| 4 Path | `gameLogic.ts`, `src/useGame.ts`, `src/components/Board.tsx`, `src/theme.ts` |
+| 3 Ice ✅ | `gameLogic.ts`, `src/useGame.ts`, `__tests__/gameLogic.test.ts` |
+| 4 Path ✅ | `gameLogic.ts`, `src/useGame.ts`, `src/components/Board.tsx`, `src/theme.ts` |
 | 5 Backlog | varies |
 | 6 Intro polish | `src/screens/Intro.tsx`, `src/gameInstructions.ts` |
 
@@ -283,18 +303,19 @@ Intro 컴팩트 1차(Phase 2.5) 이후, **나중에 더 하고 싶다면**:
 - [x] Completion offers Round 3 via `advanceRound()`
 
 ### Round 3 — Ice
-- [ ] Ice stops active *(Phase 3 gameplay)*
+- [x] Ice stops active *(Phase 3 gameplay)*
 - [x] 50 levels, 60s timer, challenge base rules (config)
 - [x] Completion offers Round 4
 
 ### Round 4 — Path
-- [ ] Required trail cells enforced *(Phase 4 gameplay)*
-- [ ] Gold overlay on unpainted required cells
+- [x] Required trail cells enforced *(Phase 4 gameplay)*
+- [x] Gold overlay on unpainted required cells
 - [x] 50 levels, 60s timer, challenge base rules (config)
 - [x] Completion offers Round 5
 
 ### Round 5 — Master
-- [ ] Ice stops + path forcing combined *(Phase 3+4 gameplay)*
+- [x] Ice stops active *(Phase 3 gameplay)*
+- [x] Path forcing combined *(Phase 4 gameplay)*
 - [x] 50 levels, 45s timer, all challenge rules (config)
 - [x] Completion cycles to Round 2
 
@@ -302,4 +323,6 @@ Intro 컴팩트 1차(Phase 2.5) 이후, **나중에 더 하고 싶다면**:
 - [x] Progress persists `roundNumber` across sessions
 - [x] `roundsCompleted` increments on each round clear
 - [x] KO/EN language persists across intro and game (`Phase 2.6`)
-- [ ] All generated levels remain solvable (BFS test in CI)
+- [x] Ice-round levels solvable with ice semantics (BFS test, `__tests__/gameLogic.test.ts`)
+- [x] Path-round levels solvable with path semantics (BFS test, `__tests__/gameLogic.test.ts`)
+- [ ] All generated levels remain solvable across all rounds (full CI coverage)
